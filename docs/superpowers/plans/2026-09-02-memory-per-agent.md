@@ -57,7 +57,7 @@ This plan is written for an agent (Opus 5) executing inline in one session. Foll
 | 9 | Agent Settings: Memory tab and naming | done | 0a51d38 |
 | 10 | Memory screen becomes the cross-agent overview | done | 7b8f693 |
 | 11 | Agent Settings: model and provider in the Profile tab | done | 09befc4 |
-| 12 | Documentation and full verification | in progress | |
+| 12 | Documentation and full verification | blocked (app check) | 68957d0 |
 | 13 | Finish the branch | not started | |
 
 ## File map
@@ -4563,3 +4563,26 @@ Run on `feat/agent-settings-memory` after Task 11, before the app check.
   the recorded baseline, plus `AgentMarkdown.test.tsx` on its 5s timeout under
   load (passes in isolation). 1964 passed. The 69 tests across this branch's
   16 touched suites all pass.
+
+### App check (Task 12, Step 7) — needs CSJ
+
+The dev build is running (`npm run dev`, log at the session scratchpad
+`dev.log`); the window opens at 730,239 1100x850 on the second display.
+
+Automated clicking was abandoned: `System Events … click at {x,y}` does not
+raise the Electron window first, so the two clicks landed in whatever app held
+focus (a screenshot showed another application). Driving the user's desktop
+blind is not worth the risk of clicking something destructive, so the six
+visual checks are left for CSJ:
+
+1. Memory screen lists every agent, `web-wizard-agent` as an empty (not failed) row.
+2. Selecting an agent opens Agent Settings at the Memory tab with five rows.
+3. User Profile shows no session count; Session Search does.
+4. A near-full store reads "At capacity…" in a neutral colour.
+5. Profile tab shows the model picker; picking a model for a non-active agent
+   changes that agent's `config.yaml`.
+6. Vault row: Choose folder writes `OBSIDIAN_VAULT_PATH` to that agent's `.env`.
+
+Everything else in Task 12 is verified: `lat.md check` passes, typecheck is
+clean, and the only failing tests are the recorded baseline plus one known
+load-flake.
