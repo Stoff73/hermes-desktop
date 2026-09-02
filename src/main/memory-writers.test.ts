@@ -25,6 +25,7 @@ beforeEach(() => {
 });
 afterAll(() => rmSync(home, { recursive: true, force: true }));
 
+// @lat: [[memory#Memory#Tests#Writers refuse stale edits]]
 describe("memory writers", () => {
   it("appends an entry with the § delimiter", () => {
     expect(mod.addMemoryEntry("second")).toEqual({ success: true });

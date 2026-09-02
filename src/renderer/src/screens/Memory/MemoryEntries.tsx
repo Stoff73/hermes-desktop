@@ -192,7 +192,9 @@ export function MemoryEntries({
                       <button
                         className="btn-ghost"
                         style={{ color: "var(--error)" }}
-                        onClick={() => handleDeleteEntry(entry.index, entry.content)}
+                        onClick={() =>
+                          handleDeleteEntry(entry.index, entry.content)
+                        }
                       >
                         {t("memory.yes")}
                       </button>

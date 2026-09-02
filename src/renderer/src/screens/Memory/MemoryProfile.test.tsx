@@ -14,6 +14,7 @@ beforeEach(() => {
   (window as unknown as { hermesAPI: unknown }).hermesAPI = api;
 });
 
+// @lat: [[memory#Memory#Tests#Profile editor keeps the draft]]
 describe("MemoryProfile conflict handling", () => {
   it("sends the loaded content as the expectation", async () => {
     render(

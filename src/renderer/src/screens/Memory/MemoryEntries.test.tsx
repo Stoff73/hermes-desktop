@@ -24,9 +24,12 @@ beforeEach(() => {
   (window as unknown as { hermesAPI: unknown }).hermesAPI = api;
 });
 
+// @lat: [[memory#Memory#Tests#Entry editor sends expectations]]
 describe("MemoryEntries conflict handling", () => {
   it("sends the entry's original text as the expectation when saving an edit", async () => {
-    render(<MemoryEntries entries={entries} profile="p" onRefresh={() => {}} />);
+    render(
+      <MemoryEntries entries={entries} profile="p" onRefresh={() => {}} />,
+    );
     fireEvent.click(screen.getAllByText("memory.edit")[1]);
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "B" } });
     fireEvent.click(screen.getByText("memory.save"));

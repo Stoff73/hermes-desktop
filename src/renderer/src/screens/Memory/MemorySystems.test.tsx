@@ -48,6 +48,7 @@ function renderSystems(d: MemoryData = data()): void {
   );
 }
 
+// @lat: [[memory#Memory#Tests#Inventory rendering]]
 describe("MemorySystems", () => {
   it("lists all five systems", () => {
     renderSystems();

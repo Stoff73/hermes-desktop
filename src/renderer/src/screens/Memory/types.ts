@@ -38,7 +38,6 @@ export interface MemoryProviderInfo {
   envVars: string[];
 }
 
-
 /** Mirrors `AgentMemorySummary` in src/main/agents-memory.ts. */
 export interface AgentMemorySummary {
   id: string;

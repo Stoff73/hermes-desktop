@@ -267,7 +267,8 @@ export function writeUserProfile(
     };
   }
   return mutateMemoryFile(userPath(profile), (current) => {
-    if (expected !== undefined && current !== expected) return { conflict: true };
+    if (expected !== undefined && current !== expected)
+      return { conflict: true };
     return { content };
   });
 }

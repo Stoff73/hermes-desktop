@@ -54,6 +54,7 @@ beforeEach(() => {
   };
 });
 
+// @lat: [[memory#Memory#Tests#Overview rows]]
 describe("Memory overview", () => {
   it("lists every agent with its memory facts", async () => {
     render(<Memory />);

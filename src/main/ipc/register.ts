@@ -2435,7 +2435,13 @@ export function registerIpcHandlers(context: IpcContext): void {
     ) => {
       const conn = getConnectionConfig();
       if (conn.mode === "ssh" && conn.ssh)
-        return sshUpdateMemoryEntry(conn.ssh, index, content, profile, expected);
+        return sshUpdateMemoryEntry(
+          conn.ssh,
+          index,
+          content,
+          profile,
+          expected,
+        );
       return updateMemoryEntry(index, content, profile, expected);
     },
   );

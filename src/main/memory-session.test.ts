@@ -16,17 +16,18 @@ const { rows, opened, closed } = vi.hoisted(() => ({
 }));
 
 vi.mock("better-sqlite3", () => ({
-  default: vi
-    .fn()
-    .mockImplementation(function (path: string, options: unknown) {
-      opened.push({ path, options });
-      return {
-        prepare: () => ({ get: () => rows.get(path) }),
-        close: () => {
-          closed.count += 1;
-        },
-      };
-    }),
+  default: vi.fn().mockImplementation(function (
+    path: string,
+    options: unknown,
+  ) {
+    opened.push({ path, options });
+    return {
+      prepare: () => ({ get: () => rows.get(path) }),
+      close: () => {
+        closed.count += 1;
+      },
+    };
+  }),
 }));
 
 function seed(
@@ -50,6 +51,7 @@ beforeAll(async () => {
 });
 afterAll(() => rmSync(home, { recursive: true, force: true }));
 
+// @lat: [[memory#Memory#Tests#Named profile sessions]]
 describe("readSessionMemory", () => {
   it("reads the default profile and floors the newest start time", () => {
     expect(readSessionMemory()).toEqual({

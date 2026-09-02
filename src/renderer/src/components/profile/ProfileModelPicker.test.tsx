@@ -57,6 +57,7 @@ beforeEach(() => {
   (window as unknown as { hermesAPI: unknown }).hermesAPI = api;
 });
 
+// @lat: [[agent-settings#Agent Settings#Tests#Model pick persists to the agent]]
 describe("ProfileModelPicker", () => {
   it("binds the model hook to this agent and persists a pick to it", async () => {
     render(<ProfileModelPicker profile="myrtle" />);

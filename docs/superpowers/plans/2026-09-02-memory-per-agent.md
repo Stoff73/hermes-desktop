@@ -56,8 +56,8 @@ This plan is written for an agent (Opus 5) executing inline in one session. Foll
 | 8 | Conflict-aware editors | done | 29292db |
 | 9 | Agent Settings: Memory tab and naming | done | 0a51d38 |
 | 10 | Memory screen becomes the cross-agent overview | done | 7b8f693 |
-| 11 | Agent Settings: model and provider in the Profile tab | in progress | |
-| 12 | Documentation and full verification | not started | |
+| 11 | Agent Settings: model and provider in the Profile tab | done | 09befc4 |
+| 12 | Documentation and full verification | in progress | |
 | 13 | Finish the branch | not started | |
 
 ## File map
@@ -4204,7 +4204,7 @@ git commit -m "feat(agent-settings): pick this agent's model and provider, with 
 
 **Interfaces:** none. Invoke the `lat-md` skill before writing.
 
-- [ ] **Step 1: Write `lat.md/memory.md`**
+- [x] **Step 1: Write `lat.md/memory.md`**
 
 Every heading has a leading paragraph under 250 characters. Section ids used by the test tags below are `memory#Memory#Tests#<leaf>`; confirm each with `npx --yes lat.md locate "<leaf heading>"` after writing.
 
@@ -4348,7 +4348,7 @@ Saving sends the loaded content as the expectation; on conflict the draft surviv
 Every agent renders with its facts; an unreadable agent is marked without blanking the list; selecting a row opens that agent; no editing affordance exists.
 ````
 
-- [ ] **Step 2: Write `lat.md/agent-settings.md`**
+- [x] **Step 2: Write `lat.md/agent-settings.md`**
 
 ````markdown
 # Agent Settings
@@ -4384,7 +4384,7 @@ Renderer tests mock `useI18n`, the model hook and the picker so they assert pers
 The hook is bound to the given profile id and a selection calls `selectModel` with `persist: true`; a clean health check shows no key field; a `MODEL_KEY_MISSING` issue shows the field and saving writes that key for that agent; a failed check still renders the picker.
 ````
 
-- [ ] **Step 3: Index and cross-reference**
+- [x] **Step 3: Index and cross-reference**
 
 In `lat.md/lat.md`, add two bullets to the list (after `[[mcp-servers]]`):
 
@@ -4399,7 +4399,7 @@ In `lat.md/chat-commands.md:118`, after the sentence ending `so their output rea
 `/memory` prints the active agent's five memory systems — entries, user-profile fill, session counts, provider and vault — matching the inventory in [[memory]].
 ```
 
-- [ ] **Step 4: Tag the tests**
+- [x] **Step 4: Tag the tests**
 
 Add exactly one `// @lat:` comment above the top-level `describe` in each file. Confirm each id with `npx --yes lat.md locate "<leaf heading>"` and use the full id it prints if it differs.
 
@@ -4419,12 +4419,12 @@ Add exactly one `// @lat:` comment above the top-level `describe` in each file. 
 | `src/renderer/src/screens/Memory/Memory.test.tsx` | `// @lat: [[memory#Memory#Tests#Overview rows]]` |
 | `src/renderer/src/components/profile/ProfileModelPicker.test.tsx` | `// @lat: [[agent-settings#Agent Settings#Tests#Model pick persists to the agent]]` |
 
-- [ ] **Step 5: Validate the docs**
+- [x] **Step 5: Validate the docs**
 
 Run: `npx --yes lat.md check`
 Expected: `All checks passed`. A broken source link means a symbol name in the doc does not match the code — fix the doc, not the code. A leading-paragraph error means a heading's first paragraph exceeds 250 characters — shorten it.
 
-- [ ] **Step 6: Full verification**
+- [x] **Step 6: Full verification**
 
 Invoke `superpowers:verification-before-completion`, then:
 
@@ -4547,3 +4547,19 @@ The test now mocks `better-sqlite3` with a constructible fake serving one row
 per database path, and keeps all three original assertions plus one that the
 handle is opened `{ readonly: true }` and closed. Note for later tasks: a
 vitest 4 mock must use the `function` keyword to be constructible.
+
+### Full verification (Task 12, Step 6)
+
+Run on `feat/agent-settings-memory` after Task 11, before the app check.
+
+- `npm run typecheck`: clean (node + web).
+- `npx --yes lat.md check`: All checks passed.
+- `npx eslint --cache .`: 1 error, 38 warnings — the error is
+  `.remember/tmp/last-ndc.ts:1`, a Remember-plugin scratch file, not this
+  branch's code. Every file this branch touches lints clean (prettier warnings
+  auto-fixed with `eslint --fix`).
+- `npx vitest run`: 3 files / 6 tests failed, all outside this work —
+  `tests/gateway-restart.test.ts` (4), `tests/terminal-launcher.test.ts` (1) from
+  the recorded baseline, plus `AgentMarkdown.test.tsx` on its 5s timeout under
+  load (passes in isolation). 1964 passed. The 69 tests across this branch's
+  16 touched suites all pass.

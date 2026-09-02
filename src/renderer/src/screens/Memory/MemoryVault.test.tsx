@@ -21,6 +21,7 @@ beforeEach(() => {
   (window as unknown as { hermesAPI: unknown }).hermesAPI = api;
 });
 
+// @lat: [[memory#Memory#Tests#Vault pane]]
 describe("MemoryVault", () => {
   it("shows Not linked and no unlink button when there is no path", () => {
     render(

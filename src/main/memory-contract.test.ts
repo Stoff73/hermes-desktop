@@ -15,6 +15,7 @@ beforeAll(async () => {
 });
 afterAll(() => rmSync(home, { recursive: true, force: true }));
 
+// @lat: [[memory#Memory#Tests#Five-system contract]]
 describe("readMemory contract", () => {
   it("returns all five systems", () => {
     const d = readMemory();
@@ -32,7 +33,9 @@ describe("readMemory contract", () => {
   });
 
   it("no longer exposes stats", () => {
-    expect((readMemory() as unknown as Record<string, unknown>).stats).toBeUndefined();
+    expect(
+      (readMemory() as unknown as Record<string, unknown>).stats,
+    ).toBeUndefined();
   });
 
   it("survives a profile with no memories directory", () => {

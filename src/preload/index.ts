@@ -1084,7 +1084,13 @@ const hermesAPI = {
     profile?: string,
     expected?: string,
   ): Promise<{ success: boolean; error?: string; conflict?: boolean }> =>
-    ipcRenderer.invoke("update-memory-entry", index, content, profile, expected),
+    ipcRenderer.invoke(
+      "update-memory-entry",
+      index,
+      content,
+      profile,
+      expected,
+    ),
   removeMemoryEntry: (
     index: number,
     profile?: string,

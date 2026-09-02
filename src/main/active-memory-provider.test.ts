@@ -13,6 +13,7 @@ beforeAll(async () => {
 });
 afterAll(() => rmSync(home, { recursive: true, force: true }));
 
+// @lat: [[memory#Memory#Tests#Provider path is read, not scanned]]
 describe("getActiveMemoryProvider", () => {
   it("ignores an unrelated model provider", () => {
     // The real config shape that produced "xai" as the memory provider.

@@ -14,6 +14,7 @@ const file = join(dir, "MEMORY.md");
 beforeEach(() => writeFileSync(file, "one"));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
+// @lat: [[memory#Memory#Tests#Compare-and-swap protocol]]
 describe("mutateMemoryFile", () => {
   it("reads an absent file as empty string", () => {
     expect(readCurrent(join(dir, "nope.md"))).toBe("");

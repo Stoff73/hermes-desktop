@@ -34,6 +34,7 @@ import { readAllAgentsMemory } from "./agents-memory";
 
 beforeEach(() => vi.clearAllMocks());
 
+// @lat: [[memory#Memory#Tests#Cross-agent summary]]
 describe("readAllAgentsMemory", () => {
   it("returns one summary per profile", async () => {
     expect(await readAllAgentsMemory()).toHaveLength(2);

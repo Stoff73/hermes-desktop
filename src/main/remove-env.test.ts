@@ -15,6 +15,7 @@ beforeAll(async () => {
 beforeEach(() => writeFileSync(envFile, seed));
 afterAll(() => rmSync(home, { recursive: true, force: true }));
 
+// @lat: [[memory#Memory#Tests#Unlinking removes the variable]]
 describe("removeEnvValue", () => {
   it("removes the variable's lines (active and commented) and leaves the rest untouched", () => {
     mod.removeEnvValue("OBSIDIAN_VAULT_PATH");
