@@ -53,9 +53,9 @@ This plan is written for an agent (Opus 5) executing inline in one session. Foll
 | 5 | Five-system `MemoryInfo` contract and its consumers | done | b29f77a |
 | 6 | Cross-agent memory summary reader and IPC | done | b92939e |
 | 7 | Systems inventory, vault pane, capacity tone, styles | done | bd6e660 |
-| 8 | Conflict-aware editors | done | da1e4ce |
-| 9 | Agent Settings: Memory tab and naming | not started | |
-| 10 | Memory screen becomes the cross-agent overview | not started | |
+| 8 | Conflict-aware editors | done | 29292db |
+| 9 | Agent Settings: Memory tab and naming | done | 62bc6d2 |
+| 10 | Memory screen becomes the cross-agent overview | in progress | |
 | 11 | Agent Settings: model and provider in the Profile tab | not started | |
 | 12 | Documentation and full verification | not started | |
 | 13 | Finish the branch | not started | |
@@ -3251,7 +3251,7 @@ git commit -m "feat(memory): editors send what the user saw and reload on confli
 - Consumes: `MemorySystems` (Task 7), `MemoryData`/`MemoryProviderInfo` (Task 5), `window.hermesAPI.discoverMemoryProviders(profile)` (exists).
 - Produces: nothing later tasks depend on. Task 11 adds to the same file's Profile tab.
 
-- [ ] **Step 1: Rename the labels**
+- [x] **Step 1: Rename the labels**
 
 In `src/shared/i18n/locales/en/agents.ts`:
 
@@ -3262,7 +3262,7 @@ In `src/shared/i18n/locales/en/agents.ts`:
 
 The keys are unchanged, so `Agents.tsx:460-463` and `ProfileSwitcher.tsx:216` pick up the new wording without edits.
 
-- [ ] **Step 2: Add a failing test for the Memory tab**
+- [x] **Step 2: Add a failing test for the Memory tab**
 
 Append to `src/renderer/src/components/profile/ProfileModal.test.tsx` inside the existing `describe` (or as a new `describe("Memory tab")` at the end):
 
@@ -3301,12 +3301,12 @@ and add to the `hermesAPI` object in `installHermesAPI`:
       discoverMemoryProviders: vi.fn().mockResolvedValue([]),
 ```
 
-- [ ] **Step 3: Run it to verify it fails**
+- [x] **Step 3: Run it to verify it fails**
 
 Run: `npx vitest run src/renderer/src/components/profile/ProfileModal.test.tsx`
 Expected: the new test FAILS — `discoverMemoryProviders` is never called (and `data-testid="memory"` is not found, since the real `MemoryEntries` renders instead of the mocked `MemorySystems`).
 
-- [ ] **Step 4: Mount the inventory and fetch the providers**
+- [x] **Step 4: Mount the inventory and fetch the providers**
 
 In `src/renderer/src/components/profile/ProfileModal.tsx`:
 
@@ -3397,12 +3397,12 @@ And in `src/renderer/src/assets/main.css`, directly before the `.profile-modal-s
 }
 ```
 
-- [ ] **Step 5: Run the modal tests and typecheck**
+- [x] **Step 5: Run the modal tests and typecheck**
 
 Run: `npx vitest run src/renderer/src/components/profile/ && npm run typecheck:web`
 Expected: PASS (existing tests plus the new one); typecheck clean.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/renderer/src/components/profile/ProfileModal.tsx src/renderer/src/components/profile/ProfileModal.test.tsx src/shared/i18n/locales/en/agents.ts src/renderer/src/assets/main.css docs/superpowers/plans/2026-09-02-memory-per-agent.md

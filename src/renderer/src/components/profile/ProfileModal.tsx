@@ -19,8 +19,11 @@ import { PROFILE_COLORS } from "../../../../shared/profileColors";
 import { fileToAvatarDataUrl } from "../../utils/imageResize";
 import { useI18n } from "../useI18n";
 import Soul from "../../screens/Soul/Soul";
-import { MemoryEntries } from "../../screens/Memory/MemoryEntries";
-import type { MemoryData } from "../../screens/Memory/types";
+import { MemorySystems } from "../../screens/Memory/MemorySystems";
+import type {
+  MemoryData,
+  MemoryProviderInfo,
+} from "../../screens/Memory/types";
 import { AppModal, AppModalTitle } from "../modal/AppModal";
 import ProfileWalletPane from "./ProfileWalletPane";
 import ProfileSyncPane from "./ProfileSyncPane";
@@ -107,6 +110,9 @@ export default function ProfileModal({
   }, [open, initialSection]);
   const [error, setError] = useState("");
   const [memoryData, setMemoryData] = useState<MemoryData | null>(null);
+  const [memoryProviders, setMemoryProviders] = useState<MemoryProviderInfo[]>(
+    [],
+  );
   const [memoryLoading, setMemoryLoading] = useState(false);
   const [memoryError, setMemoryError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -147,8 +153,14 @@ export default function ProfileModal({
     setMemoryLoading(true);
     setMemoryError("");
     try {
-      const data = await window.hermesAPI.readMemory(profile.id);
+      // MemorySystems requires the providers list: an empty one makes the
+      // provider pane say "No memory providers found" for every agent.
+      const [data, provs] = await Promise.all([
+        window.hermesAPI.readMemory(profile.id),
+        window.hermesAPI.discoverMemoryProviders(profile.id),
+      ]);
       setMemoryData(data as MemoryData);
+      setMemoryProviders(provs);
     } catch {
       setMemoryError(t("memory.loadFailed"));
     } finally {
@@ -316,6 +328,9 @@ export default function ProfileModal({
       labelledBy="profile-modal-title"
     >
       <aside className="profile-modal-sidebar">
+        <span className="profile-modal-kicker">
+          {t("agents.agentSettings")}
+        </span>
         <div className="profile-modal-sidebar-head">
           {profile && (
             <ProfileAvatar
@@ -507,9 +522,10 @@ export default function ProfileModal({
                     <OrbLoader state="searching" size={64} />
                   </div>
                 ) : memoryData ? (
-                  <MemoryEntries
-                    entries={memoryData.memory.entries}
+                  <MemorySystems
+                    data={memoryData}
                     profile={profile.id}
+                    providers={memoryProviders}
                     onRefresh={loadMemoryData}
                   />
                 ) : memoryError ? (
