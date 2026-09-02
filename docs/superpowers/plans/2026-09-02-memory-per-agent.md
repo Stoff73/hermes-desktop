@@ -52,8 +52,8 @@ This plan is written for an agent (Opus 5) executing inline in one session. Foll
 | 4 | Per-profile session reader | done | 10621c7 |
 | 5 | Five-system `MemoryInfo` contract and its consumers | done | b29f77a |
 | 6 | Cross-agent memory summary reader and IPC | done | b92939e |
-| 7 | Systems inventory, vault pane, capacity tone, styles | in progress | |
-| 8 | Conflict-aware editors | not started | |
+| 7 | Systems inventory, vault pane, capacity tone, styles | done | bd6e660 |
+| 8 | Conflict-aware editors | done | da1e4ce |
 | 9 | Agent Settings: Memory tab and naming | not started | |
 | 10 | Memory screen becomes the cross-agent overview | not started | |
 | 11 | Agent Settings: model and provider in the Profile tab | not started | |
@@ -2943,7 +2943,7 @@ git commit -m "feat(memory): systems inventory with five rows, vault pane that u
 
 Behaviour being built: every edit sends what the user was looking at; on `conflict` the view reloads (`onRefresh()`) and the message from the main process is shown. For entries the editor closes, because the entry it was editing may no longer be at that index. For the user profile the draft **survives** in the textarea and the baseline moves to the fresh disk content, so a second save is an informed overwrite rather than a silent one.
 
-- [ ] **Step 1: Write the failing entries test**
+- [x] **Step 1: Write the failing entries test**
 
 ```tsx
 // src/renderer/src/screens/Memory/MemoryEntries.test.tsx
@@ -3018,12 +3018,12 @@ describe("MemoryEntries conflict handling", () => {
 });
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/MemoryEntries.test.tsx`
 Expected: FAIL — `updateMemoryEntry` called with 3 arguments, not 4; delete result ignored.
 
-- [ ] **Step 3: Make `MemoryEntries` send expectations and react to conflicts**
+- [x] **Step 3: Make `MemoryEntries` send expectations and react to conflicts**
 
 In `src/renderer/src/screens/Memory/MemoryEntries.tsx`:
 
@@ -3112,12 +3112,12 @@ Update the two call sites in the JSX:
 
 - The confirm-delete Yes button's `onClick` becomes `onClick={() => handleDeleteEntry(entry.index, entry.content)}`.
 
-- [ ] **Step 4: Run the entries test to verify it passes**
+- [x] **Step 4: Run the entries test to verify it passes**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/MemoryEntries.test.tsx`
 Expected: PASS, 3 tests.
 
-- [ ] **Step 5: Write the failing profile-editor test**
+- [x] **Step 5: Write the failing profile-editor test**
 
 ```tsx
 // src/renderer/src/screens/Memory/MemoryProfile.test.tsx
@@ -3182,12 +3182,12 @@ describe("MemoryProfile conflict handling", () => {
 });
 ```
 
-- [ ] **Step 6: Run it to verify it fails**
+- [x] **Step 6: Run it to verify it fails**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/MemoryProfile.test.tsx`
 Expected: FAIL — `writeUserProfile` called with 2 arguments; resync test fails because the textarea keeps "me".
 
-- [ ] **Step 7: Make `MemoryProfile` send its baseline and resync**
+- [x] **Step 7: Make `MemoryProfile` send its baseline and resync**
 
 In `src/renderer/src/screens/Memory/MemoryProfile.tsx`, change the React import to `import { useEffect, useState } from "react";`, add after the `useState` lines:
 
@@ -3223,12 +3223,12 @@ and replace `handleSave` with:
   }
 ```
 
-- [ ] **Step 8: Run both editor tests and typecheck**
+- [x] **Step 8: Run both editor tests and typecheck**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/ && npm run typecheck:web`
 Expected: PASS; typecheck clean.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add src/renderer/src/screens/Memory/MemoryEntries.tsx src/renderer/src/screens/Memory/MemoryEntries.test.tsx src/renderer/src/screens/Memory/MemoryProfile.tsx src/renderer/src/screens/Memory/MemoryProfile.test.tsx docs/superpowers/plans/2026-09-02-memory-per-agent.md

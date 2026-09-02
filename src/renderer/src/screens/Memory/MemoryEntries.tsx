@@ -17,6 +17,9 @@ export function MemoryEntries({
   const { t } = useI18n();
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editContent, setEditContent] = useState("");
+  /** The entry text as loaded — sent as the expectation so a save cannot land
+   *  on an entry the agent has since changed or moved. */
+  const [editOriginal, setEditOriginal] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [newEntry, setNewEntry] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
@@ -35,6 +38,8 @@ export function MemoryEntries({
       onRefresh();
     } else {
       setError(result.error || t("memory.addFailed"));
+      // The agent moved the file underneath us; reload so the view matches disk.
+      if (result.conflict) onRefresh();
     }
   }
 
@@ -45,6 +50,7 @@ export function MemoryEntries({
       editingIndex,
       editContent.trim(),
       profile,
+      editOriginal,
     );
     if (result.success) {
       setEditingIndex(null);
@@ -52,12 +58,29 @@ export function MemoryEntries({
       onRefresh();
     } else {
       setError(result.error || t("memory.updateFailed"));
+      if (result.conflict) {
+        // The entry under this index is not the one the user was editing.
+        setEditingIndex(null);
+        setEditContent("");
+        onRefresh();
+      }
     }
   }
 
-  async function handleDeleteEntry(index: number): Promise<void> {
-    await window.hermesAPI.removeMemoryEntry(index, profile);
+  async function handleDeleteEntry(
+    index: number,
+    expected: string,
+  ): Promise<void> {
+    setError("");
+    const result = await window.hermesAPI.removeMemoryEntry(
+      index,
+      profile,
+      expected,
+    );
     setConfirmDelete(null);
+    if (!result.success) setError(result.error || t("memory.updateFailed"));
+    // Reload on success and on failure alike: a conflict means the list on
+    // screen is stale, and a plain error costs nothing to refresh after.
     onRefresh();
   }
 
@@ -158,6 +181,7 @@ export function MemoryEntries({
                     onClick={() => {
                       setEditingIndex(entry.index);
                       setEditContent(entry.content);
+                      setEditOriginal(entry.content);
                     }}
                   >
                     {t("memory.edit")}
@@ -168,7 +192,7 @@ export function MemoryEntries({
                       <button
                         className="btn-ghost"
                         style={{ color: "var(--error)" }}
-                        onClick={() => handleDeleteEntry(entry.index)}
+                        onClick={() => handleDeleteEntry(entry.index, entry.content)}
                       >
                         {t("memory.yes")}
                       </button>

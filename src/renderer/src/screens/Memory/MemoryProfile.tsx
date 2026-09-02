@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useI18n } from "../../components/useI18n";
 
 interface MemoryProfileProps {
@@ -20,11 +20,20 @@ export function MemoryProfile({
   const [userSaved, setUserSaved] = useState(false);
   const [error, setError] = useState("");
 
+  // Resync to disk when a refresh delivers new content and the user is not
+  // mid-edit. After a conflict the draft survives (userEditing stays true) but
+  // `initialContent` has moved on, so the next save's expectation is the
+  // fresh file — an informed overwrite, not a silent one.
+  useEffect(() => {
+    if (!userEditing) setUserContent(initialContent);
+  }, [initialContent, userEditing]);
+
   async function handleSave(): Promise<void> {
     setError("");
     const result = await window.hermesAPI.writeUserProfile(
       userContent,
       profile,
+      initialContent,
     );
     if (result.success) {
       setUserEditing(false);
@@ -33,6 +42,7 @@ export function MemoryProfile({
       onRefresh();
     } else {
       setError(result.error || t("memory.saveFailed"));
+      if (result.conflict) onRefresh();
     }
   }
 
