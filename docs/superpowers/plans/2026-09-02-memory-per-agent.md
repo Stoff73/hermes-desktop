@@ -45,8 +45,8 @@ This plan is written for an agent (Opus 5) executing inline in one session. Foll
 
 | # | Task | Status | Commit |
 | --- | --- | --- | --- |
-| 0 | Branch and baseline | not started | |
-| 1 | Compare-and-swap writes with an expected-content check | not started | |
+| 0 | Branch and baseline | done | (no code) |
+| 1 | Compare-and-swap writes with an expected-content check | in progress | |
 | 2 | Route every memory writer through the check | not started | |
 | 3 | Fix `getActiveMemoryProvider` reading the LLM provider | not started | |
 | 4 | Per-profile session reader | not started | |
@@ -115,24 +115,24 @@ Files this plan creates or changes, and what each is responsible for.
 
 **Interfaces:** none.
 
-- [ ] **Step 1: Create the isolated workspace**
+- [x] **Step 1: Create the isolated workspace**
 
 Invoke `superpowers:using-git-worktrees`. Branch name: `feat/agent-settings-memory`. If it creates a worktree under `.worktrees/`, `cd` into it for every later command. Confirm:
 
 Run: `git rev-parse --abbrev-ref HEAD`
 Expected: `feat/agent-settings-memory`
 
-- [ ] **Step 2: Install and typecheck the untouched tree**
+- [x] **Step 2: Install and typecheck the untouched tree**
 
 Run: `npm install && npm run typecheck`
 Expected: typecheck clean. If it is not clean before you have changed anything, stop and log it.
 
-- [ ] **Step 3: Measure the test baseline yourself**
+- [x] **Step 3: Measure the test baseline yourself**
 
 Run: `npx vitest run 2>&1 | tail -15`
 Expected: mostly passing. At the time of writing `tests/gateway-restart.test.ts` and `tests/terminal-launcher.test.ts` failed on a clean tree and appeared flaky, but that is **unverified for your checkout**. Write the exact list of failing files under **Execution log → Baseline**. Any failure outside that list later is yours.
 
-- [ ] **Step 4: Record the baseline**
+- [x] **Step 4: Record the baseline**
 
 Update the Progress row for Task 0 to `done` (no commit; nothing changed). Commit the plan file alone:
 
@@ -160,7 +160,7 @@ git commit -m "docs(plan): record test baseline before implementation"
   - `readCurrent(filePath: string): string`
   - `mutateMemoryFile(filePath: string, mutate: (current: string) => Mutation): WriteResult`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/main/memory-write.test.ts
@@ -246,12 +246,12 @@ describe("mutateMemoryFile", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/main/memory-write.test.ts`
 Expected: FAIL — cannot resolve `./memory-write`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```ts
 // src/main/memory-write.ts
@@ -332,7 +332,7 @@ export function mutateMemoryFile(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/main/memory-write.test.ts`
 Expected: PASS, 7 tests.
