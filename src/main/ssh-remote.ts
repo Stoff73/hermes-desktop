@@ -1166,6 +1166,19 @@ export async function sshSetEnvValue(
   await sshWriteFile(config, envPath, upsertEnvLine(content, key, value));
 }
 
+export async function sshRemoveEnvValue(
+  config: SshConfig,
+  key: string,
+  profile?: string,
+): Promise<void> {
+  const envPath = remoteEnvPath(profile);
+  const content = await sshReadFile(config, envPath);
+  const re = new RegExp(`^#?\\s*${escapeRegex(key)}\\s*=`);
+  const kept = content.split("\n").filter((line) => !re.test(line.trim()));
+  if (kept.length === content.split("\n").length) return;
+  await sshWriteFile(config, envPath, kept.join("\n"));
+}
+
 // ─── Dotted-path YAML helpers (mirror of the local-mode fix) ───────────────
 //
 // The previous implementation used `^\s*<key>:` against the whole remote

@@ -255,6 +255,8 @@ const hermesAPI = {
 
   setEnv: (key: string, value: string, profile?: string): Promise<boolean> =>
     ipcRenderer.invoke("set-env", key, value, profile),
+  removeEnv: (key: string, profile?: string): Promise<boolean> =>
+    ipcRenderer.invoke("remove-env", key, profile),
 
   validateChatReadiness: (
     profile?: string,

@@ -14559,6 +14559,148 @@ body:has(.shell-vibrant),
   min-height: 500px;
 }
 
+/* ── Memory: systems inventory (Agent Settings → Memory) ───────────────── */
+
+.memory-systems {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.memory-system {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.memory-system:hover {
+  border-color: var(--border-bright);
+}
+
+.memory-system-head {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto minmax(180px, 220px);
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.memory-system-icon {
+  color: var(--text-muted);
+}
+
+.memory-system-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.memory-system-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.memory-system-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.memory-system-badge {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.memory-system-metric {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 0;
+}
+
+.memory-system-metric .memory-capacity {
+  margin: 0;
+}
+
+.memory-system-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.memory-system-warn {
+  font-size: 11px;
+  color: var(--warning);
+}
+
+.memory-system-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 0 14px 10px;
+}
+
+.memory-system-detail {
+  border-top: 1px solid var(--border);
+  padding: 14px;
+}
+
+.memory-system-detail-note {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.memory-vault {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.memory-vault-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.memory-vault-path {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.memory-vault-path code {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.memory-vault-actions {
+  display: flex;
+  gap: 8px;
+}
+
 /* ========================================================================
    TOOLS CONFIGURATION
    ======================================================================== */

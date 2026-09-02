@@ -284,6 +284,24 @@ export function setEnvValue(
   safeWriteFile(envFile, lines.join("\n"));
 }
 
+/**
+ * Remove a variable from the profile .env entirely — active and commented
+ * lines alike, the same lines `setEnvValue` would have replaced. Used when a
+ * setting is unlinked rather than changed, so no blank `KEY=` line is left
+ * for the agent to misread as a value.
+ */
+export function removeEnvValue(key: string, profile?: string): void {
+  validateEnvEntry(key, "");
+  const { envFile } = profilePaths(profile);
+  invalidateCache(`env:${profile || "default"}`);
+  if (!existsSync(envFile)) return;
+  const re = new RegExp(`^#?\\s*${escapeRegex(key)}\\s*=`);
+  const lines = readFileSync(envFile, "utf-8").split("\n");
+  const kept = lines.filter((line) => !re.test(line.trim()));
+  if (kept.length === lines.length) return;
+  safeWriteFile(envFile, kept.join("\n"));
+}
+
 export function validateEnvEntry(key: string, value: string): void {
   if (!ENV_KEY_RE.test(key)) {
     throw new Error(

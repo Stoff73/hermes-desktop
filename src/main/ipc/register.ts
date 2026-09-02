@@ -166,6 +166,7 @@ import { startOfficeStack } from "../office-start";
 import {
   readEnv,
   setEnvValue,
+  removeEnvValue,
   getConfigValue,
   setConfigValue,
   getHermesHome,
@@ -380,6 +381,7 @@ import {
   sshReadEnv,
   sshGetOAuthProviderStatuses,
   sshSetEnvValue,
+  sshRemoveEnvValue,
   sshGetConfigValue,
   sshSetConfigValue,
   sshGetHermesHome,
@@ -1036,6 +1038,19 @@ export function registerIpcHandlers(context: IpcContext): void {
       if (isGatewayRunning(profile) && looksLikeCredential) {
         restartGateway(profile);
       }
+      return true;
+    },
+  );
+
+  ipcMain.handle(
+    "remove-env",
+    async (_event, key: string, profile?: string) => {
+      const conn = getConnectionConfig();
+      if (conn.mode === "ssh" && conn.ssh) {
+        await sshRemoveEnvValue(conn.ssh, key, profile);
+        return true;
+      }
+      removeEnvValue(key, profile);
       return true;
     },
   );

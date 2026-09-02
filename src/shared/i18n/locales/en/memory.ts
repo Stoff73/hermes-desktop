@@ -47,6 +47,32 @@ export default {
   sessionsUnavailable: "No sessions recorded yet",
   providerBuiltIn: "Built-in only",
   vaultNotLinked: "Not linked",
+  systemsTitle: "Memory systems",
+  editable: "Editable",
+  readOnly: "Read-only",
+  configurable: "Configurable",
+  atCapacity: "At capacity — the agent consolidates on the next write",
+  nextSessionNote: "Takes effect in this agent's next session.",
+  sessionSearch: "Session Search",
+  sessionSearchDesc:
+    "Every past conversation, searchable. Written automatically by the agent.",
+  sessionSearchHint: "Search past conversations from the Sessions screen.",
+  agentMemoryDesc: "Curated notes the agent keeps about your environment.",
+  userProfileDesc: "Who you are — name, role, preferences.",
+  providerDesc:
+    "An external memory backend, running alongside built-in memory.",
+  providerNotInstalled: "not installed",
+  sessionsAndMessages: "{{sessions}} sessions · {{messages}} messages",
+  lastActive: "active {{when}}",
+  vaultTitle: "Obsidian Vault",
+  vaultDesc:
+    "A notes folder the agent reads and writes through its Obsidian skill.",
+  vaultHint:
+    "Choose the folder of an Obsidian vault. The agent's note-taking skill will read, search and edit notes there.",
+  vaultLinked: "Vault linked",
+  vaultMissing: "folder not found",
+  vaultChoose: "Choose folder…",
+  vaultClear: "Unlink",
   providers: {
     honcho:
       "AI-native cross-session user modeling with dialectic Q&A and semantic search",

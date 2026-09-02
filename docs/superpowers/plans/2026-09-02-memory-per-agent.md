@@ -51,8 +51,8 @@ This plan is written for an agent (Opus 5) executing inline in one session. Foll
 | 3 | Fix `getActiveMemoryProvider` reading the LLM provider | done | 0aad884 |
 | 4 | Per-profile session reader | done | 10621c7 |
 | 5 | Five-system `MemoryInfo` contract and its consumers | done | b29f77a |
-| 6 | Cross-agent memory summary reader and IPC | in progress | |
-| 7 | Systems inventory, vault pane, capacity tone, styles | not started | |
+| 6 | Cross-agent memory summary reader and IPC | done | b92939e |
+| 7 | Systems inventory, vault pane, capacity tone, styles | in progress | |
 | 8 | Conflict-aware editors | not started | |
 | 9 | Agent Settings: Memory tab and naming | not started | |
 | 10 | Memory screen becomes the cross-agent overview | not started | |
@@ -1907,7 +1907,7 @@ git commit -m "feat(memory): cross-agent memory summary reader and IPC"
   - `CapacityBar` gains `tone?: "ramp" | "neutral"` (default `"ramp"`) and renders 0% when `limit` is 0.
 - The overview (Task 10) does **not** mount `MemorySystems`; it renders its own compact rows. There is no `readOnly` prop anywhere.
 
-- [ ] **Step 1: Add the strings**
+- [x] **Step 1: Add the strings**
 
 In `src/shared/i18n/locales/en/memory.ts`, add inside the default export, directly after the three keys Task 5 added (`sessionsUnavailable`, `providerBuiltIn`, `vaultNotLinked`) and before `providers: {`:
 
@@ -1940,7 +1940,7 @@ In `src/shared/i18n/locales/en/memory.ts`, add inside the default export, direct
   vaultClear: "Unlink",
 ```
 
-- [ ] **Step 2: Give `CapacityBar` a neutral tone and a zero-limit guard**
+- [x] **Step 2: Give `CapacityBar` a neutral tone and a zero-limit guard**
 
 Replace the whole of `src/renderer/src/screens/Memory/CapacityBar.tsx` with:
 
@@ -1993,7 +1993,7 @@ export function CapacityBar({
 }
 ```
 
-- [ ] **Step 3: Write the failing env-removal test**
+- [x] **Step 3: Write the failing env-removal test**
 
 ```ts
 // src/main/remove-env.test.ts
@@ -2030,12 +2030,12 @@ describe("removeEnvValue", () => {
 });
 ```
 
-- [ ] **Step 4: Run it to verify it fails**
+- [x] **Step 4: Run it to verify it fails**
 
 Run: `npx vitest run src/main/remove-env.test.ts`
 Expected: FAIL — `mod.removeEnvValue is not a function`.
 
-- [ ] **Step 5: Implement the remover, its SSH twin, the IPC and the preload entry**
+- [x] **Step 5: Implement the remover, its SSH twin, the IPC and the preload entry**
 
 In `src/main/config.ts`, directly after `setEnvValue` (ends ~line 286):
 
@@ -2112,12 +2112,12 @@ and in `src/preload/index.d.ts`, beside the `setEnv` declaration:
   removeEnv: (key: string, profile?: string) => Promise<boolean>;
 ```
 
-- [ ] **Step 6: Run it to verify it passes, and typecheck**
+- [x] **Step 6: Run it to verify it passes, and typecheck**
 
 Run: `npx vitest run src/main/remove-env.test.ts && npm run typecheck`
 Expected: PASS, 2 tests; typecheck clean.
 
-- [ ] **Step 7: Write the failing vault-pane test**
+- [x] **Step 7: Write the failing vault-pane test**
 
 ```tsx
 // src/renderer/src/screens/Memory/MemoryVault.test.tsx
@@ -2210,12 +2210,12 @@ describe("MemoryVault", () => {
 });
 ```
 
-- [ ] **Step 8: Run it to verify it fails**
+- [x] **Step 8: Run it to verify it fails**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/MemoryVault.test.tsx`
 Expected: FAIL — cannot resolve `./MemoryVault`.
 
-- [ ] **Step 9: Implement the vault pane**
+- [x] **Step 9: Implement the vault pane**
 
 ```tsx
 // src/renderer/src/screens/Memory/MemoryVault.tsx
@@ -2309,12 +2309,12 @@ export function MemoryVault({
 }
 ```
 
-- [ ] **Step 10: Run the vault test to verify it passes**
+- [x] **Step 10: Run the vault test to verify it passes**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/MemoryVault.test.tsx`
 Expected: PASS, 5 tests.
 
-- [ ] **Step 11: Write the failing inventory test**
+- [x] **Step 11: Write the failing inventory test**
 
 ```tsx
 // src/renderer/src/screens/Memory/MemorySystems.test.tsx
@@ -2477,12 +2477,12 @@ describe("MemorySystems", () => {
 });
 ```
 
-- [ ] **Step 12: Run it to verify it fails**
+- [x] **Step 12: Run it to verify it fails**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/MemorySystems.test.tsx`
 Expected: FAIL — cannot resolve `./MemorySystems`.
 
-- [ ] **Step 13: Implement the inventory**
+- [x] **Step 13: Implement the inventory**
 
 ```tsx
 // src/renderer/src/screens/Memory/MemorySystems.tsx
@@ -2764,7 +2764,7 @@ export function MemorySystems({
 }
 ```
 
-- [ ] **Step 14: Style every new class name**
+- [x] **Step 14: Style every new class name**
 
 Append to `src/renderer/src/assets/main.css` after the `.memory-soul-tab .soul-container` rule (the last `.memory-*` rule, ~line 14590). Tokens follow the existing `.memory-entry-card` and `.memory-tab` rules so the screen reads as one design.
 
@@ -2914,12 +2914,12 @@ Append to `src/renderer/src/assets/main.css` after the `.memory-soul-tab .soul-c
 
 If any `var(--...)` token used above does not exist in `main.css` (check with `grep -c -- "--bg-elevated:" src/renderer/src/assets/main.css`, likewise `--border-bright`, `--radius-sm`, `--warning`), substitute the nearest existing token from the `.memory-entry-card` / `.memory-tab` rules; do not invent a token.
 
-- [ ] **Step 15: Run the Memory tests and typecheck**
+- [x] **Step 15: Run the Memory tests and typecheck**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/ src/main/remove-env.test.ts && npm run typecheck`
 Expected: PASS (2 env + 5 vault + 8 inventory); typecheck clean.
 
-- [ ] **Step 16: Commit**
+- [x] **Step 16: Commit**
 
 ```bash
 git add src/renderer/src/screens/Memory/ src/shared/i18n/locales/en/memory.ts src/renderer/src/assets/main.css src/main/config.ts src/main/remove-env.test.ts src/main/ssh-remote.ts src/main/ipc/register.ts src/preload/index.ts src/preload/index.d.ts docs/superpowers/plans/2026-09-02-memory-per-agent.md
