@@ -13,6 +13,7 @@ vi.mock("./installer", () => ({
 }));
 vi.mock("./config", () => ({
   getApiServerKey: vi.fn(() => ""),
+  ensureLocalApiServerKey: vi.fn(() => ({ key: "test-key", created: false })),
   getConnectionConfig: vi.fn(() => ({
     mode: "local",
     remoteUrl: "",

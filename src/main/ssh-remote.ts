@@ -2395,16 +2395,11 @@ export async function sshReadRemoteApiKey(config: SshConfig): Promise<string> {
 // The gateway api_server refuses to bind with a key shorter than 16 chars or an
 // obvious placeholder, so chat over /v1 can never connect with one. Mirrors the
 // remote-side guard.
-const MIN_API_SERVER_KEY_LENGTH = 16;
-const PLACEHOLDER_API_SERVER_KEY =
-  /^(?:changeme|placeholder|your[-_]?(?:api[-_]?)?key|api[-_]?server[-_]?key|secret|password|token)$/i;
-
-export function isUsableApiServerKey(key: string): boolean {
-  const k = (key || "").trim();
-  return (
-    k.length >= MIN_API_SERVER_KEY_LENGTH && !PLACEHOLDER_API_SERVER_KEY.test(k)
-  );
-}
+// Single definition of "is this key usable" lives in config.ts so the local
+// gateway ensure and this SSH provisioning path can never drift apart.
+// Re-exported here because callers and tests already import it from this module.
+import { isUsableApiServerKey } from "./config";
+export { isUsableApiServerKey };
 
 export interface SshApiServerKeyResult {
   key: string;

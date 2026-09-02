@@ -1292,6 +1292,44 @@ export interface ApiServerKeyStatus {
   checkedAt?: number;
 }
 
+/**
+ * A usable `API_SERVER_KEY` is long enough to be a real secret and is not an
+ * obvious placeholder. Shared by the local gateway ensure below and the SSH
+ * provisioning path, so both machines apply the same bar.
+ */
+const MIN_API_SERVER_KEY_LENGTH = 16;
+const PLACEHOLDER_API_SERVER_KEY =
+  /^(?:changeme|placeholder|your[-_]?(?:api[-_]?)?key|api[-_]?server[-_]?key|secret|password|token)$/i;
+
+export function isUsableApiServerKey(key: string): boolean {
+  const k = (key || "").trim();
+  return (
+    k.length >= MIN_API_SERVER_KEY_LENGTH && !PLACEHOLDER_API_SERVER_KEY.test(k)
+  );
+}
+
+/**
+ * Ensure the profile has a usable local gateway key, generating one when it is
+ * missing or a placeholder. Returns the key and whether it was just written.
+ *
+ * `API_SERVER_KEY` authenticates the desktop to the Hermes gateway on this
+ * machine; the api_server refuses to bind without it. SSH mode has always
+ * provisioned it (`sshEnsureApiServerKey`) while local mode only ever read it,
+ * so a local user was shown a warning banner asking them to invent a secret by
+ * hand. This closes that asymmetry — nothing here is a provider credential and
+ * nothing leaves the machine.
+ */
+export function ensureLocalApiServerKey(profile?: string): {
+  key: string;
+  created: boolean;
+} {
+  const existing = getApiServerKey(profile);
+  if (isUsableApiServerKey(existing)) return { key: existing, created: false };
+  const key = randomBytes(24).toString("hex");
+  setEnvValue("API_SERVER_KEY", key, profile);
+  return { key, created: true };
+}
+
 export function getApiServerKeyStatus(profile?: string): ApiServerKeyStatus {
   const key = getApiServerKey(profile);
   const status: ApiServerKeyStatus = { hasKey: key.length > 0 };
@@ -1766,6 +1804,26 @@ interface CredentialEntry {
   request_count?: number;
   /** Legacy field — historical pool entries written with `{key, label}`. */
   key?: string;
+  /**
+   * Nested shape written by the Hermes CLI's OAuth flows:
+   * `providers.<name> = { tokens: { access_token, refresh_token }, … }`.
+   * Flat and nested forms coexist in the wild, so readers must accept both.
+   */
+  tokens?: { access_token?: string; refresh_token?: string; api_key?: string };
+}
+
+/** True iff a credential record carries a usable token in either shape. */
+function credentialEntryHasToken(entry: CredentialEntry | undefined): boolean {
+  if (!entry) return false;
+  const candidates = [
+    entry.access_token,
+    entry.refresh_token,
+    entry.api_key,
+    entry.tokens?.access_token,
+    entry.tokens?.refresh_token,
+    entry.tokens?.api_key,
+  ];
+  return candidates.some((v) => String(v || "").trim());
 }
 
 function readAuthStore(profile?: string): Record<string, unknown> {
@@ -1875,9 +1933,11 @@ export function addCredentialPoolEntry(
 /**
  * True iff the given provider has usable OAuth or stored-credential evidence
  * in auth.json. Recognized fields are `access_token`, `refresh_token`, and
- * `api_key`, looked up under both `providers[<name>]` and any entry in
- * `credential_pool[<name>]`. When a named profile is given without its own
- * auth.json, fall back to the default-profile store.
+ * `api_key`, read either flat on the record or nested under `tokens` (the
+ * shape the CLI's OAuth flows write), looked up under both
+ * `providers[<name>]` and any entry in `credential_pool[<name>]`. When a
+ * named profile is given without its own auth.json, fall back to the
+ * default-profile store.
  *
  * Stricter than just "provider key exists in JSON" — an empty
  * `providers: { anthropic: {} }` or a bare `active_provider` no longer
@@ -1902,12 +1962,7 @@ export function hasOAuthCredentials(
       const entry = (providers as Record<string, CredentialEntry>)[
         cleanProvider
       ];
-      if (
-        entry &&
-        (String(entry.access_token || "").trim() ||
-          String(entry.refresh_token || "").trim() ||
-          String(entry.api_key || "").trim())
-      ) {
+      if (credentialEntryHasToken(entry)) {
         return true;
       }
     }
@@ -1917,18 +1972,7 @@ export function hasOAuthCredentials(
       pool && typeof pool === "object"
         ? (pool as Record<string, CredentialEntry[]>)[cleanProvider]
         : undefined;
-    if (
-      Array.isArray(entries) &&
-      entries.some(
-        (entry) =>
-          !!(
-            entry &&
-            (String(entry.api_key || "").trim() ||
-              String(entry.access_token || "").trim() ||
-              String(entry.refresh_token || "").trim())
-          ),
-      )
-    ) {
+    if (Array.isArray(entries) && entries.some(credentialEntryHasToken)) {
       return true;
     }
   }

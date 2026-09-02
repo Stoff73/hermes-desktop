@@ -5765,6 +5765,16 @@ body:has(.shell-vibrant),
   background: var(--border-bright);
 }
 
+/* The composer shows focus through `.chat-input-wrapper:focus-within` (accent
+   border + glow). The global `:focus-visible` rule would additionally paint an
+   inset 1px ring on the textarea itself, which reads as a second box drawn
+   inside the composer. Suppress it here only — keyboard focus stays visible
+   via the wrapper, so this costs no accessibility. */
+.chat-input:focus-visible {
+  box-shadow: none;
+  filter: none;
+}
+
 .chat-input::placeholder {
   color: var(--text-muted);
 }
