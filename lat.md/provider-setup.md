@@ -42,13 +42,21 @@ The provider list (`pickerProviders`) is sourced from the **configured providers
 
 OAuth plans with usable `auth.json` credentials appear in the active-model picker even though they have no API-key environment variable.
 
-Each picker open asks the main process for a boolean status per supported OAuth provider. Local mode uses [[src/main/config.ts#hasOAuthCredentials]] so both `providers` and `credential_pool` auth shapes and profile fallback work. Access and refresh tokens never enter renderer state. [[src/renderer/src/screens/Providers/provider-picker.ts#buildAuthenticatedOAuthPickerProviders]] merges authenticated plans with saved and discovered models, while deduplicating providers such as Nous that may also have an API key. [[tests/provider-picker.test.ts]] covers the keyless Codex-plan regression.
+Each picker open asks the main process for a boolean status per supported OAuth provider. Local mode uses [[src/main/config.ts#hasOAuthCredentials]] so both `providers` and `credential_pool` auth shapes and profile fallback work (see [[provider-setup#Provider setup#Active model is picked from configured providers#Authenticated OAuth providers are selectable#Credential shapes in auth.json]]). Access and refresh tokens never enter renderer state. [[src/renderer/src/screens/Providers/provider-picker.ts#buildAuthenticatedOAuthPickerProviders]] merges authenticated plans with saved and discovered models, while deduplicating providers such as Nous that may also have an API key. [[tests/provider-picker.test.ts]] covers the keyless Codex-plan regression.
 
 #### Connection-specific credential source
 
 OAuth usability is read from the machine that owns the active model library, preventing a local token from leaking into Remote or SSH picker decisions.
 
 Dashboard-backed Remote and SSH connections call the authenticated `/api/providers/oauth` endpoint through [[src/main/remote-provider-statuses.ts#remoteGetOAuthProviderStatuses]], scoped to the selected named profile when present, reduce its response to supported-provider booleans in the main process, and discard every token preview and metadata field. Legacy SSH reads the selected remote profile's `auth.json` through [[src/main/ssh-remote.ts#sshGetOAuthProviderStatuses]], with default-profile fallback and boolean-only output. Direct Remote legacy transport has no credential-status API and therefore fails closed instead of consulting desktop-local state. Status failures do not prevent the picker from opening; they only omit unverified OAuth entries. [[tests/remote-provider-statuses.test.ts]] covers dashboard authentication and profile scoping, boolean reduction, allowlisting, and malformed-response fail-closed behavior.
+
+#### Credential shapes in auth.json
+
+A credential record counts as usable when it carries a token in **either** the flat or the nested shape, because both are written in practice and a reader that knows only one silently reports "not signed in".
+
+The CLI's OAuth flows write `providers.<name> = { tokens: { access_token, refresh_token }, auth_mode, … }`, while credential-pool entries and older records keep `access_token` / `refresh_token` / `api_key` flat on the record. [[src/main/config.ts#hasOAuthCredentials]] delegates to a single `credentialEntryHasToken` helper that checks both, applied identically to the `providers` map and every `credential_pool` entry. Whitespace-only values still count as absent, preserving the existing rule that an empty record is not configured. [[src/main/config-credentials.test.ts]] pins all four cases.
+
+Before this, a user authenticated only through the nested shape was routed to the API-key setup screen despite a valid session.
 
 ### Native keys without a setup card still route
 

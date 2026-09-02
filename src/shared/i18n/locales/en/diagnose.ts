@@ -12,17 +12,17 @@ export default {
     showDetails: "Show details",
   },
   apiKeyBanner: {
-    lead: "API Server Key not set — chat will fail.",
+    lead: "Local gateway key not set — chat will fail.",
     setNow: "SET NOW",
   },
   apiKeyModal: {
-    title: "Set API Server Key",
+    title: "Set local gateway key",
     description:
-      "API_SERVER_KEY is required for the Hermes gateway to authenticate requests. Set it now to enable chat. If you keep secrets in a vault (KeePassXC, Bitwarden, etc.) and your Hermes `secrets.provider` is already pointing at it, this warning can be ignored — the provider serves the key directly.",
-    label: "API Server Key",
-    placeholder: "sk-… or any secret",
-    autoGenerate: "Auto-generate",
-    hint: "You can paste your own key or generate a random UUID.",
+      "This is not a provider API key — it is a local secret this app shares with the Hermes gateway running on this machine, so the two can authenticate to each other. Nothing leaves your computer, and you do not need an account anywhere to create one. Click Generate and save. If you keep secrets in a vault (KeePassXC, Bitwarden, etc.) and your Hermes `secrets.provider` already points at it, this warning can be ignored — the provider serves the key directly.",
+    label: "Local gateway key (API_SERVER_KEY)",
+    placeholder: "Click Generate, or type any secret",
+    autoGenerate: "Generate",
+    hint: "Any random string works — it is only used between this app and your local gateway.",
   },
   fix: {
     apply: "Apply fix",

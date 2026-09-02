@@ -215,10 +215,10 @@ export default {
   modeSsh: "SSH Tunnel",
   modeSshHint:
     "Tunnel to a remote Hermes over SSH — no exposed ports or API keys needed.",
-  sessionDisabledTitle: "Session history disabled — API_SERVER_KEY not set",
+  sessionDisabledTitle: "Session history disabled — local gateway key not set",
   sessionDisabledDesc:
-    "Without an API server key the gateway cannot authenticate session continuation requests. Messages will still send, but conversation history won't be preserved across restarts.",
-  generateKey: "Generate & save a key for me",
+    "API_SERVER_KEY is a local secret shared between this app and the Hermes gateway on this machine — not a provider API key, and not tied to any account. Without it the gateway cannot authenticate session continuation requests. Messages will still send, but conversation history won't be preserved across restarts.",
+  generateKey: "Generate a local key for me",
   generating: "Generating…",
   remoteEnvTitle: "Set API_SERVER_KEY on the remote server",
   remoteEnvSshDesc:
@@ -288,5 +288,5 @@ export default {
   remoteSuccess: "Connected successfully!",
   remoteErrorRequiredSimple: "Please enter a URL",
   remoteErrorFailedSimple: "Could not reach server",
-  apiGenerated: "API key generated — gateway restarting…",
+  apiGenerated: "Local gateway key generated — gateway restarting…",
 } as const;

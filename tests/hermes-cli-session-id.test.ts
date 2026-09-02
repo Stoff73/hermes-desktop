@@ -245,6 +245,7 @@ vi.mock("../src/main/config", () => ({
   getConfigValue: () => "",
   readEnv: () => profileEnv,
   getApiServerKey: () => "",
+  ensureLocalApiServerKey: () => ({ key: "test-key", created: false }),
   getConnectionConfig: () => ({ mode: "local" as const }),
 }));
 

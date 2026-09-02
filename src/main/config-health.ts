@@ -242,10 +242,12 @@ function checkApiServerKeyPlacement(profile?: string): ConfigHealthIssue[] {
         code: "EMPTY_API_SERVER_KEY",
         severity: "warning",
         message:
-          "No API_SERVER_KEY is set — chat will fail because the Hermes gateway requires auth.",
+          "No local gateway key (API_SERVER_KEY) is set — chat will fail because the Hermes gateway requires auth.",
         detail:
-          "API_SERVER_KEY is mandatory for Hermes API access. " +
-          "Set it in .env (or under Settings → Providers) to authenticate requests.",
+          "API_SERVER_KEY is a local secret shared between the desktop and " +
+          "the Hermes gateway on this machine — not a provider API key. " +
+          "Generate one under Settings → Connection (no account needed); " +
+          "it is saved to .env for you.",
         locations: [envFile],
         autoFixable: false,
         fixLocation: "setup",

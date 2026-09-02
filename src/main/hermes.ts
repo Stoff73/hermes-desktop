@@ -26,6 +26,7 @@ import {
   getEnhancedPath,
 } from "./installer";
 import {
+  ensureLocalApiServerKey,
   getApiServerKey,
   getConnectionConfig,
   getConfigValue,
@@ -3053,6 +3054,12 @@ export function buildGatewayEnv(profile?: string): Record<string, string> {
   // Make sure this profile's config.yaml enables the api_server and binds the
   // profile's own port before we spawn.
   ensureApiServerConfig(profile);
+  // The api_server refuses to bind without API_SERVER_KEY, so mint one now if
+  // the profile has none. SSH mode has always done this (sshEnsureApiServerKey);
+  // local mode used to leave it unset and surface a warning banner telling the
+  // user to invent a secret by hand. It is a loopback token between this app and
+  // the gateway on this machine — not a provider credential.
+  ensureLocalApiServerKey(profile);
   const port = getProfilePort(profile);
 
   const gatewayEnv: Record<string, string> = {
