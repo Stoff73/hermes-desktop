@@ -36,7 +36,6 @@ User Profile   1,363 / 1,375 chars (99%)  RED     footer "22 Sessions"
 - The red 99% bar signals a fault. For a bounded, self-consolidating store,
   at-capacity is the normal steady state — the memory tool rejects an
   over-limit write and the agent consolidates on the next turn.
-- `stats.totalMessages` is queried and never rendered.
 - `2 Memories` restates the bar and the tab header (`2 entries`) below it.
 
 **Per-agent data is presented as global.** This is the structural defect. The
@@ -90,8 +89,10 @@ different memory the user cannot see.
 | `provider` | External Provider | read-only here | 8 pluggable backends | active + reachability |
 
 Providers are **additive**: the docs state the built-in memory "continues to
-work exactly as before" alongside an external provider. The current Providers
-tab implies an either/or choice; the UI must show both as concurrently live.
+work exactly as before" alongside an external provider, and the existing
+`providersHint` copy already says so. The defect is not that wording — it is that
+the tab is presented as a global setting when `discoverMemoryProviders`,
+`getActiveMemoryProvider` and the env writes are all profile-scoped.
 
 ## Design
 
@@ -121,8 +122,15 @@ global.
 ### The systems inventory
 
 `CapacityCards` is deleted. In its place, one row per system: label, one-line
-description, an editability badge (`Editable` / `Read-only`), its own scale
-metric, and last activity where knowable.
+description, an editability badge, its own scale metric, and last activity where
+knowable.
+
+The badge has three states, because two cannot describe these systems honestly.
+`memory` and `user` are **Editable** — you change the content. `provider` is
+**Configurable** — you choose and configure the backend but cannot read or write
+what it stores. `sessions` is **Read-only** — written entirely by the agent.
+Badging the provider row read-only while its detail hosts activate/deactivate
+controls would be a new misrepresentation of exactly the kind this work removes.
 
 Each system uses a metric appropriate to it rather than being forced into a
 capacity bar. Only `memory` and `user` are bounded, so only they get a bar. At
@@ -147,9 +155,24 @@ The top-level screen lists every agent with its memory summarised: the two
 bounded stores' fill, session count, active provider, last activity. Selecting
 an agent opens that agent's settings at the memory section.
 
-It reads; it does not edit. That keeps exactly one place where memory is
-written, which is what stops the two-surfaces problem the previous draft had to
-work around.
+It reads; it does not edit. That keeps exactly one place where memory is written,
+which is what stops the two-surfaces problem the previous draft had to work
+around.
+
+Over SSH the overview must read the **remote** machine's agents. `list-profiles`
+and `read-memory` are both already SSH-aware, so the summary handler branches the
+same way. A local-only handler would list local agents while drilling into remote
+memory — the exact class of mismatch this spec exists to remove.
+
+### Styling
+
+Both new surfaces introduce class names that do not exist in `main.css`, so each
+ships with its styles; a row rendered as an unstyled `<button>` is not done. The
+`.memory-capacity-card*` rules are removed along with `CapacityCards`.
+
+`CapacityBar` currently hard-codes `var(--error)` above 90%. It gains a tone
+option so the inventory can render a near-full bounded store neutrally with the
+consolidation caption, while other callers keep today's behaviour.
 
 ### IPC contract
 
@@ -164,9 +187,8 @@ sessions: {
   available: boolean; // state.db present and readable
 }
 provider: {
-  active: string | null; // from memory.provider in config.yaml
-  installed: boolean;
-  reachable: boolean | null; // null when not determinable without a network call
+  active: string | null; // memory.provider from config.yaml, "" coerced to null
+  installed: boolean; // the active provider's plugin exists in this installation
 }
 ```
 
@@ -203,8 +225,8 @@ must join it rather than work around it.
 `msvcrt` on Windows), calls `_reload_target` to re-read from disk **under the
 lock** before every mutation, and on detecting drift takes a `.bak.<ts>`
 snapshot and **refuses the write** rather than clobbering. Its docstring names
-this case exactly: "a patch tool, a shell append, a manual edit, or a concurrent
-session". The `add` action deliberately skips the drift check because appending
+this case explicitly — paraphrasing, a patch tool, a shell append, a manual edit
+or a sister-session write. The `add` action deliberately skips the drift check because appending
 cannot clobber. Both `MEMORY.md.lock` and `USER.md.lock` exist on disk today.
 
 **The gap is that the desktop never takes that lock**, and it cannot. Node 22
@@ -265,9 +287,11 @@ state, not an error — `web-wizard-agent` is exactly this case. On the overview
 one unreadable agent must not blank the list; it renders with an unavailable
 marker.
 
-Provider reachability is best-effort. When it cannot be determined without a
-network call it stays `null`, and the row shows the configured provider without
-a health claim rather than guessing.
+Provider health is deliberately not modelled. Determining reachability needs a
+provider-specific network call per backend, so the row reports what is configured
+and whether its plugin is installed, and claims nothing about liveness. A field
+that could only ever be `null` would be carried through main, preload, the
+renderer types and their tests for nothing.
 
 A write that loses the compare-and-swap after one retry fails with a message
 saying the agent changed the file and the view has reloaded. It must never fall
