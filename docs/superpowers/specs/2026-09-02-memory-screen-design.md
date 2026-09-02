@@ -132,8 +132,10 @@ capacity bar. Only `memory` and `user` are bounded, so only they get a bar. At
 
 Selecting a row reveals that system's detail. Existing components become detail
 panes unchanged: `memory` -> `MemoryEntries`, `user` -> `MemoryProfile`,
-`provider` -> `MemoryProviders`. `sessions` is new: counts, recent sessions, and
-an FTS query box.
+`provider` -> `MemoryProviders`. `sessions` is new, and stays deliberately thin:
+counts and last activity, with search left to the Sessions screen, which already
+implements FTS over the same table. Duplicating that query UI here would be a
+second implementation of a solved problem.
 
 Persona keeps its own section rather than joining the inventory. `SOUL.md` is a
 context file, not a memory store — no capacity, and the agent does not write to
