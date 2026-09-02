@@ -285,7 +285,10 @@ The overview needs every agent at once. Rather than N round trips it gets one
 plus the same per-profile readers.
 
 The vault path is set with the existing `setEnv("OBSIDIAN_VAULT_PATH", path,
-profile)` and cleared with an empty value; no new IPC.
+profile)`. Unlinking **removes** the variable from that agent's `.env` through a
+new `removeEnv(key, profile)` (with an SSH twin), because the env layer has a
+setter and no remover, and a blank `OBSIDIAN_VAULT_PATH=` left behind is a value
+the agent's skill could misread, not an unset variable.
 
 ### Reading another profile safely
 
@@ -439,6 +442,9 @@ Unit tests follow the existing `src/main/*.test.ts` pattern of pointing
   whose stores are unreadable.
 - The vault reads as `{ path: null, exists: false }` when unset, and reports
   `exists` correctly for a set path.
+- Removing an env variable deletes its line (active or commented) and leaves
+  every other line untouched; unlinking the vault calls that, never a blank
+  write.
 
 Renderer tests: read-only systems render no edit affordance; a >=90% bar
 carries the consolidation caption and not an error style; the provider row

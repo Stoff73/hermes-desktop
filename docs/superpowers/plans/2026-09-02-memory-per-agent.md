@@ -71,6 +71,7 @@ Files this plan creates or changes, and what each is responsible for.
 | `src/main/memory-session.ts` (new) | Read-only counts and last activity from one profile's `state.db`. |
 | `src/main/agents-memory.ts` (new) | One summary row per agent for the overview; isolates per-agent failures. |
 | `src/main/installer.ts` | `getActiveMemoryProvider` fix only. |
+| `src/main/config.ts` | Gains `removeEnvValue`, the remover the env layer never had; unlinking the vault deletes the line instead of blanking it. |
 | `src/main/ssh-remote.ts` | SSH twins of every reader and writer above. |
 | `src/main/ipc/register.ts` | Memory IPC handlers: pass `expected` through; add `read-all-agents-memory`. |
 | `src/preload/index.ts`, `src/preload/index.d.ts` | Renderer-facing signatures for the above. |
@@ -1893,11 +1894,13 @@ git commit -m "feat(memory): cross-agent memory summary reader and IPC"
 - Create: `src/renderer/src/screens/Memory/MemorySystems.tsx`
 - Modify: `src/shared/i18n/locales/en/memory.ts`
 - Modify: `src/renderer/src/assets/main.css` (append after `.memory-soul-tab .soul-container`, ~line 14590)
-- Test: `src/renderer/src/screens/Memory/MemoryVault.test.tsx`, `src/renderer/src/screens/Memory/MemorySystems.test.tsx`
+- Modify: `src/main/config.ts` (after `setEnvValue`, ~line 286), `src/main/ssh-remote.ts` (after `sshSetEnvValue`, ~line 1092), `src/main/ipc/register.ts` (after the `set-env` handler, ~line 1030), `src/preload/index.ts:256`, `src/preload/index.d.ts` (beside `setEnv`)
+- Test: `src/main/remove-env.test.ts`, `src/renderer/src/screens/Memory/MemoryVault.test.tsx`, `src/renderer/src/screens/Memory/MemorySystems.test.tsx`
 
 **Interfaces:**
 
 - Consumes: `MemoryData`, `MemoryProviderInfo` (Task 5), existing `MemoryEntries`, `MemoryProfile`, `MemoryProviders`; `window.hermesAPI.selectFolder(): Promise<string | null>` and `setEnv(key, value, profile): Promise<boolean>` (both exist); `formatDistanceToNowStrict` from `date-fns` (already a dependency, used in `MessageRow.tsx`).
+- Produces in the main process: `removeEnvValue(key: string, profile?: string): void` in `config.ts`, `sshRemoveEnvValue(config, key, profile?)` in `ssh-remote.ts`, IPC `remove-env`, and `window.hermesAPI.removeEnv(key: string, profile?: string): Promise<boolean>`. The env layer has a setter and no remover; unlinking the vault must delete the line, not leave a blank `OBSIDIAN_VAULT_PATH=` for the agent's skill to misread.
 - Produces, and Task 9 depends on these:
   - `<MemorySystems data={MemoryData} profile={string | undefined} providers={MemoryProviderInfo[]} onRefresh={() => void} />` — `providers` is required.
   - `<MemoryVault path={string | null} exists={boolean} profile={string | undefined} onRefresh={() => void} />`
@@ -1990,7 +1993,131 @@ export function CapacityBar({
 }
 ```
 
-- [ ] **Step 3: Write the failing vault-pane test**
+- [ ] **Step 3: Write the failing env-removal test**
+
+```ts
+// src/main/remove-env.test.ts
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
+
+const home = mkdtempSync(join(tmpdir(), "hermes-rmenv-"));
+process.env.HERMES_HOME = home;
+const envFile = join(home, ".env");
+const seed = "A=1\nOBSIDIAN_VAULT_PATH=/v\n# OBSIDIAN_VAULT_PATH=old\nB=2\n";
+
+let mod: typeof import("./config");
+beforeAll(async () => {
+  mod = await import("./config");
+});
+beforeEach(() => writeFileSync(envFile, seed));
+afterAll(() => rmSync(home, { recursive: true, force: true }));
+
+describe("removeEnvValue", () => {
+  it("removes the variable's lines (active and commented) and leaves the rest untouched", () => {
+    mod.removeEnvValue("OBSIDIAN_VAULT_PATH");
+    expect(readFileSync(envFile, "utf-8")).toBe("A=1\nB=2\n");
+    expect(mod.readEnv().OBSIDIAN_VAULT_PATH).toBeUndefined();
+  });
+
+  it("is a no-op when the variable is absent or the file is missing", () => {
+    mod.removeEnvValue("NOPE");
+    expect(readFileSync(envFile, "utf-8")).toBe(seed);
+    rmSync(envFile);
+    expect(() => mod.removeEnvValue("A")).not.toThrow();
+  });
+});
+```
+
+- [ ] **Step 4: Run it to verify it fails**
+
+Run: `npx vitest run src/main/remove-env.test.ts`
+Expected: FAIL — `mod.removeEnvValue is not a function`.
+
+- [ ] **Step 5: Implement the remover, its SSH twin, the IPC and the preload entry**
+
+In `src/main/config.ts`, directly after `setEnvValue` (ends ~line 286):
+
+```ts
+/**
+ * Remove a variable from the profile .env entirely — active and commented
+ * lines alike, the same lines `setEnvValue` would have replaced. Used when a
+ * setting is unlinked rather than changed, so no blank `KEY=` line is left
+ * for the agent to misread as a value.
+ */
+export function removeEnvValue(key: string, profile?: string): void {
+  validateEnvEntry(key, "");
+  const { envFile } = profilePaths(profile);
+  invalidateCache(`env:${profile || "default"}`);
+  if (!existsSync(envFile)) return;
+  const re = new RegExp(`^#?\\s*${escapeRegex(key)}\\s*=`);
+  const lines = readFileSync(envFile, "utf-8").split("\n");
+  const kept = lines.filter((line) => !re.test(line.trim()));
+  if (kept.length === lines.length) return;
+  safeWriteFile(envFile, kept.join("\n"));
+}
+```
+
+`escapeRegex`, `invalidateCache`, `profilePaths` and `safeWriteFile` are already in scope in that file (all used by `setEnvValue`).
+
+In `src/main/ssh-remote.ts`, directly after `sshSetEnvValue`:
+
+```ts
+export async function sshRemoveEnvValue(
+  config: SshConfig,
+  key: string,
+  profile?: string,
+): Promise<void> {
+  const envPath = remoteEnvPath(profile);
+  const content = await sshReadFile(config, envPath);
+  const re = new RegExp(`^#?\\s*${escapeRegex(key)}\\s*=`);
+  const kept = content.split("\n").filter((line) => !re.test(line.trim()));
+  if (kept.length === content.split("\n").length) return;
+  await sshWriteFile(config, envPath, kept.join("\n"));
+}
+```
+
+(`escapeRegex` is declared further down the same file; function declarations hoist.)
+
+In `src/main/ipc/register.ts`, add `removeEnvValue` to the existing `../config` import and `sshRemoveEnvValue` to the `../ssh-remote` import, then directly after the `set-env` handler add:
+
+```ts
+  ipcMain.handle(
+    "remove-env",
+    async (_event, key: string, profile?: string) => {
+      const conn = getConnectionConfig();
+      if (conn.mode === "ssh" && conn.ssh) {
+        await sshRemoveEnvValue(conn.ssh, key, profile);
+        return true;
+      }
+      removeEnvValue(key, profile);
+      return true;
+    },
+  );
+```
+
+(`set-env` restarts the gateway only for API-key-shaped names; `OBSIDIAN_VAULT_PATH` never matches, so neither setting nor removing the vault path restarts anything.)
+
+In `src/preload/index.ts`, directly after the `setEnv` entry (line 256-257):
+
+```ts
+  removeEnv: (key: string, profile?: string): Promise<boolean> =>
+    ipcRenderer.invoke("remove-env", key, profile),
+```
+
+and in `src/preload/index.d.ts`, beside the `setEnv` declaration:
+
+```ts
+  removeEnv: (key: string, profile?: string) => Promise<boolean>;
+```
+
+- [ ] **Step 6: Run it to verify it passes, and typecheck**
+
+Run: `npx vitest run src/main/remove-env.test.ts && npm run typecheck`
+Expected: PASS, 2 tests; typecheck clean.
+
+- [ ] **Step 7: Write the failing vault-pane test**
 
 ```tsx
 // src/renderer/src/screens/Memory/MemoryVault.test.tsx
@@ -2006,12 +2133,14 @@ vi.mock("../../components/useI18n", () => ({
 const api = {
   selectFolder: vi.fn(),
   setEnv: vi.fn(),
+  removeEnv: vi.fn(),
 };
 
 beforeEach(() => {
   vi.clearAllMocks();
   api.selectFolder.mockResolvedValue("/Users/me/Vault");
   api.setEnv.mockResolvedValue(true);
+  api.removeEnv.mockResolvedValue(true);
   (window as unknown as { hermesAPI: unknown }).hermesAPI = api;
 });
 
@@ -2066,24 +2195,27 @@ describe("MemoryVault", () => {
     expect(api.setEnv).not.toHaveBeenCalled();
   });
 
-  it("unlinking writes an empty value", async () => {
+  it("unlinking removes the variable from this agent's .env, and refreshes", async () => {
+    const onRefresh = vi.fn();
     render(
-      <MemoryVault path="/v" exists={true} profile="p" onRefresh={() => {}} />,
+      <MemoryVault path="/v" exists={true} profile="p" onRefresh={onRefresh} />,
     );
     fireEvent.click(screen.getByText("memory.vaultClear"));
     await waitFor(() =>
-      expect(api.setEnv).toHaveBeenCalledWith("OBSIDIAN_VAULT_PATH", "", "p"),
+      expect(api.removeEnv).toHaveBeenCalledWith("OBSIDIAN_VAULT_PATH", "p"),
     );
+    expect(api.setEnv).not.toHaveBeenCalled();
+    expect(onRefresh).toHaveBeenCalled();
   });
 });
 ```
 
-- [ ] **Step 4: Run it to verify it fails**
+- [ ] **Step 8: Run it to verify it fails**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/MemoryVault.test.tsx`
 Expected: FAIL — cannot resolve `./MemoryVault`.
 
-- [ ] **Step 5: Implement the vault pane**
+- [ ] **Step 9: Implement the vault pane**
 
 ```tsx
 // src/renderer/src/screens/Memory/MemoryVault.tsx
@@ -2100,9 +2232,8 @@ interface MemoryVaultProps {
 /**
  * Detail pane for the Obsidian vault row. The desktop only ever writes the
  * path (OBSIDIAN_VAULT_PATH in this agent's .env); the agent's note-taking
- * skill reads and writes the notes. An empty value unlinks — memory.ts reads
- * "" as "unset", and the skill falls back to its default when the variable is
- * blank.
+ * skill reads and writes the notes. Unlinking removes the variable outright
+ * so no blank line is left for the skill to misread.
  */
 export function MemoryVault({
   path,
@@ -2114,15 +2245,11 @@ export function MemoryVault({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  async function save(next: string): Promise<void> {
+  async function apply(write: () => Promise<boolean>): Promise<void> {
     setSaving(true);
     setError("");
     try {
-      const ok = await window.hermesAPI.setEnv(
-        "OBSIDIAN_VAULT_PATH",
-        next,
-        profile,
-      );
+      const ok = await write();
       if (!ok) setError(t("memory.saveFailed"));
       onRefresh();
     } catch {
@@ -2134,7 +2261,16 @@ export function MemoryVault({
 
   async function choose(): Promise<void> {
     const picked = await window.hermesAPI.selectFolder();
-    if (picked) await save(picked);
+    if (!picked) return;
+    await apply(() =>
+      window.hermesAPI.setEnv("OBSIDIAN_VAULT_PATH", picked, profile),
+    );
+  }
+
+  async function unlink(): Promise<void> {
+    await apply(() =>
+      window.hermesAPI.removeEnv("OBSIDIAN_VAULT_PATH", profile),
+    );
   }
 
   return (
@@ -2160,7 +2296,7 @@ export function MemoryVault({
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={() => void save("")}
+            onClick={() => void unlink()}
             disabled={saving}
           >
             {t("memory.vaultClear")}
@@ -2173,12 +2309,12 @@ export function MemoryVault({
 }
 ```
 
-- [ ] **Step 6: Run the vault test to verify it passes**
+- [ ] **Step 10: Run the vault test to verify it passes**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/MemoryVault.test.tsx`
 Expected: PASS, 5 tests.
 
-- [ ] **Step 7: Write the failing inventory test**
+- [ ] **Step 11: Write the failing inventory test**
 
 ```tsx
 // src/renderer/src/screens/Memory/MemorySystems.test.tsx
@@ -2341,12 +2477,12 @@ describe("MemorySystems", () => {
 });
 ```
 
-- [ ] **Step 8: Run it to verify it fails**
+- [ ] **Step 12: Run it to verify it fails**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/MemorySystems.test.tsx`
 Expected: FAIL — cannot resolve `./MemorySystems`.
 
-- [ ] **Step 9: Implement the inventory**
+- [ ] **Step 13: Implement the inventory**
 
 ```tsx
 // src/renderer/src/screens/Memory/MemorySystems.tsx
@@ -2628,7 +2764,7 @@ export function MemorySystems({
 }
 ```
 
-- [ ] **Step 10: Style every new class name**
+- [ ] **Step 14: Style every new class name**
 
 Append to `src/renderer/src/assets/main.css` after the `.memory-soul-tab .soul-container` rule (the last `.memory-*` rule, ~line 14590). Tokens follow the existing `.memory-entry-card` and `.memory-tab` rules so the screen reads as one design.
 
@@ -2778,16 +2914,16 @@ Append to `src/renderer/src/assets/main.css` after the `.memory-soul-tab .soul-c
 
 If any `var(--...)` token used above does not exist in `main.css` (check with `grep -c -- "--bg-elevated:" src/renderer/src/assets/main.css`, likewise `--border-bright`, `--radius-sm`, `--warning`), substitute the nearest existing token from the `.memory-entry-card` / `.memory-tab` rules; do not invent a token.
 
-- [ ] **Step 11: Run the Memory tests and typecheck**
+- [ ] **Step 15: Run the Memory tests and typecheck**
 
-Run: `npx vitest run src/renderer/src/screens/Memory/ && npm run typecheck:web`
-Expected: PASS (5 vault + 8 inventory); typecheck clean.
+Run: `npx vitest run src/renderer/src/screens/Memory/ src/main/remove-env.test.ts && npm run typecheck`
+Expected: PASS (2 env + 5 vault + 8 inventory); typecheck clean.
 
-- [ ] **Step 12: Commit**
+- [ ] **Step 16: Commit**
 
 ```bash
-git add src/renderer/src/screens/Memory/ src/shared/i18n/locales/en/memory.ts src/renderer/src/assets/main.css docs/superpowers/plans/2026-09-02-memory-per-agent.md
-git commit -m "feat(memory): systems inventory with five rows, vault pane, neutral capacity tone"
+git add src/renderer/src/screens/Memory/ src/shared/i18n/locales/en/memory.ts src/renderer/src/assets/main.css src/main/config.ts src/main/remove-env.test.ts src/main/ssh-remote.ts src/main/ipc/register.ts src/preload/index.ts src/preload/index.d.ts docs/superpowers/plans/2026-09-02-memory-per-agent.md
+git commit -m "feat(memory): systems inventory with five rows, vault pane that unlinks cleanly, neutral capacity tone"
 ```
 
 ---
@@ -4153,7 +4289,7 @@ The active memory provider is read from the `memory.provider` path, not from any
 
 The Obsidian vault is a folder the agent's bundled note-taking skill uses, located by `OBSIDIAN_VAULT_PATH` in the agent's `.env`; the desktop sets the path and nothing else.
 
-[[src/renderer/src/screens/Memory/MemoryVault.tsx#MemoryVault]] writes it through the existing `setEnv`, using the native folder dialog. Because the variable is profile-scoped, agents can use different vaults. A path whose folder is missing is a warning, not an error.
+[[src/renderer/src/screens/Memory/MemoryVault.tsx#MemoryVault]] writes it through the existing `setEnv`, using the native folder dialog, and unlinks through [[src/main/config.ts#removeEnvValue]], which deletes the line rather than leaving a blank `KEY=` for the skill to misread. Because the variable is profile-scoped, agents can use different vaults. A path whose folder is missing is a warning, not an error.
 
 ## Slash command
 
@@ -4193,7 +4329,11 @@ All five rows render with the correct badge; a near-full store carries the conso
 
 ### Vault pane
 
-Shows Not linked or the path with a missing-folder warning; choosing a folder writes `OBSIDIAN_VAULT_PATH` for that agent; unlinking writes an empty value.
+Shows Not linked or the path with a missing-folder warning; choosing a folder writes `OBSIDIAN_VAULT_PATH` for that agent; unlinking removes the variable from that agent's `.env` rather than blanking it.
+
+### Unlinking removes the variable
+
+`removeEnvValue` deletes the variable's active and commented lines and leaves every other line untouched; it is a no-op when the variable or the file is absent.
 
 ### Entry editor sends expectations
 
@@ -4271,6 +4411,7 @@ Add exactly one `// @lat:` comment above the top-level `describe` in each file. 
 | `src/main/memory-session.test.ts` | `// @lat: [[memory#Memory#Tests#Named profile sessions]]` |
 | `src/main/memory-contract.test.ts` | `// @lat: [[memory#Memory#Tests#Five-system contract]]` |
 | `src/main/agents-memory.test.ts` | `// @lat: [[memory#Memory#Tests#Cross-agent summary]]` |
+| `src/main/remove-env.test.ts` | `// @lat: [[memory#Memory#Tests#Unlinking removes the variable]]` |
 | `src/renderer/src/screens/Memory/MemorySystems.test.tsx` | `// @lat: [[memory#Memory#Tests#Inventory rendering]]` |
 | `src/renderer/src/screens/Memory/MemoryVault.test.tsx` | `// @lat: [[memory#Memory#Tests#Vault pane]]` |
 | `src/renderer/src/screens/Memory/MemoryEntries.test.tsx` | `// @lat: [[memory#Memory#Tests#Entry editor sends expectations]]` |
@@ -4364,7 +4505,7 @@ Set Task 13 to `done` with the PR URL in the Commit column, commit the plan file
 Checked while writing; recorded here so the executor knows what was deliberately decided.
 
 - **Spec coverage.** Five systems → Tasks 5, 7. Editability badges and neutral capacity → Task 7. Agent Settings naming and Memory tab → Task 9. Model/provider pin and credential check → Task 11. Overview, SSH-aware, hidden only in HTTP remote mode → Tasks 6, 10. Two-level write protection, SSH twins, `removeMemoryEntry` → `WriteResult` → Tasks 1, 2, 8. Provider regex and Active badge → Task 3. `/memory` → Task 5. Vault → Tasks 5, 7. Error handling (per-system isolation, vault warning, health-check failure not blocking) → Tasks 5, 7, 11. Docs → Task 12.
-- **Deliberate simplifications.** Over SSH, `provider.installed` is reported `true` because the remote plugin directory is not cheaply reachable; the row therefore never shows a false "not installed" warning remotely. Unlinking the vault writes an empty value rather than deleting the line, because `setEnvValue` has no delete and the reader treats `""` as unset.
+- **Deliberate simplifications.** Over SSH, `provider.installed` is reported `true` because the remote plugin directory is not cheaply reachable; the row therefore never shows a false "not installed" warning remotely.
 - **Type consistency.** `WriteResult`/`Mutation` (Task 1) are the only result types; every writer, SSH twin, IPC handler and preload signature uses `{ success, error?, conflict? }`. `SessionMemory` (Task 4) is embedded unchanged in `MemoryInfo` (Task 5), `MemoryData` (Task 5) and the SSH reader. `AgentMemorySummary` (Task 6) is copied verbatim into the renderer types and the preload. `relativeTime` is defined once in `MemorySystems.tsx` (Task 7) and imported by `Memory.tsx` (Task 10).
 
 ## Execution log
