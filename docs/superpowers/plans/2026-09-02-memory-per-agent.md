@@ -46,8 +46,8 @@ This plan is written for an agent (Opus 5) executing inline in one session. Foll
 | # | Task | Status | Commit |
 | --- | --- | --- | --- |
 | 0 | Branch and baseline | done | (no code) |
-| 1 | Compare-and-swap writes with an expected-content check | in progress | |
-| 2 | Route every memory writer through the check | not started | |
+| 1 | Compare-and-swap writes with an expected-content check | done | b04741d |
+| 2 | Route every memory writer through the check | in progress | |
 | 3 | Fix `getActiveMemoryProvider` reading the LLM provider | not started | |
 | 4 | Per-profile session reader | not started | |
 | 5 | Five-system `MemoryInfo` contract and its consumers | not started | |
@@ -337,7 +337,7 @@ export function mutateMemoryFile(
 Run: `npx vitest run src/main/memory-write.test.ts`
 Expected: PASS, 7 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/main/memory-write.ts src/main/memory-write.test.ts docs/superpowers/plans/2026-09-02-memory-per-agent.md
@@ -367,7 +367,7 @@ git commit -m "feat(memory): compare-and-swap writes that report conflicts inste
   - `writeMemoryRaw(content: string, profile?: string): WriteResult`
   - `expected` is what the user was looking at: the entry's original text for update/remove, the whole file for the user profile. When omitted (agent-sync, old callers) the check is skipped.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/main/memory-writers.test.ts
@@ -480,12 +480,12 @@ describe("memory writers", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/main/memory-writers.test.ts`
 Expected: FAIL — `removeMemoryEntry` returns `true`, not `{ success: true }`; the `expected` tests fail because the argument is ignored.
 
-- [ ] **Step 3: Replace the five writers in `src/main/memory.ts`**
+- [x] **Step 3: Replace the five writers in `src/main/memory.ts`**
 
 Add the import at the top of `src/main/memory.ts`:
 
@@ -608,12 +608,12 @@ export function writeUserProfile(
 }
 ```
 
-- [ ] **Step 4: Run the writer tests**
+- [x] **Step 4: Run the writer tests**
 
 Run: `npx vitest run src/main/memory-writers.test.ts src/main/memory-write.test.ts`
 Expected: PASS, 11 + 7 tests.
 
-- [ ] **Step 5: Normalise the SSH twins**
+- [x] **Step 5: Normalise the SSH twins**
 
 In `src/main/ssh-remote.ts`, add to the existing `import type { MemoryInfo } from "./memory";` line:
 
@@ -720,7 +720,7 @@ function sshEntryStale(
 }
 ```
 
-- [ ] **Step 6: Pass `expected` through IPC and preload**
+- [x] **Step 6: Pass `expected` through IPC and preload**
 
 In `src/main/ipc/register.ts`, replace the `update-memory-entry`, `remove-memory-entry` and `write-user-profile` handlers with:
 
@@ -814,7 +814,7 @@ In `src/preload/index.d.ts`, replace the matching four declarations with:
   ) => Promise<{ success: boolean; error?: string; conflict?: boolean }>;
 ```
 
-- [ ] **Step 7: Typecheck and run the memory tests**
+- [x] **Step 7: Typecheck and run the memory tests**
 
 Run: `npm run typecheck && npx vitest run src/main/memory-writers.test.ts src/main/agent-sync.test.ts`
 Expected: typecheck clean (`MemoryEntries.tsx` still compiles because it ignores `removeMemoryEntry`'s result; Task 8 fixes that). Tests PASS. If `agent-sync.test.ts` fails on `writeMemoryRaw`'s return shape, its mock at `src/main/agent-sync.test.ts:90` returns the old shape — update the mock to return `{ success: true }`.
@@ -4523,3 +4523,14 @@ _(Task 12, Step 7: one line per item, pass or what was seen.)_
 ### Blockers and notes
 
 _(Anything that stopped a task, or was noticed and deliberately left alone.)_
+
+### Baseline (Task 0, 2026-09-02)
+
+Recorded on `feat/agent-settings-memory` at `25d1fc3` + the lockfile commit.
+
+- `npm run typecheck`: clean.
+- `npx vitest run`: **2 files / 7 tests failed** — `tests/gateway-restart.test.ts`
+  and `tests/terminal-launcher.test.ts`. Everything else passed (1906 passed,
+  3 skipped). These two are the handover's known pre-existing failures.
+- A first full run under load also failed `src/renderer/src/components/AgentMarkdown.test.tsx`
+  on a 5s timeout; it passes in isolation and did not recur. Load flake, not a baseline failure.

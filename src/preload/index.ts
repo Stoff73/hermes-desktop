@@ -1035,21 +1035,27 @@ const hermesAPI = {
   addMemoryEntry: (
     content: string,
     profile?: string,
-  ): Promise<{ success: boolean; error?: string }> =>
+  ): Promise<{ success: boolean; error?: string; conflict?: boolean }> =>
     ipcRenderer.invoke("add-memory-entry", content, profile),
   updateMemoryEntry: (
     index: number,
     content: string,
     profile?: string,
-  ): Promise<{ success: boolean; error?: string }> =>
-    ipcRenderer.invoke("update-memory-entry", index, content, profile),
-  removeMemoryEntry: (index: number, profile?: string): Promise<boolean> =>
-    ipcRenderer.invoke("remove-memory-entry", index, profile),
+    expected?: string,
+  ): Promise<{ success: boolean; error?: string; conflict?: boolean }> =>
+    ipcRenderer.invoke("update-memory-entry", index, content, profile, expected),
+  removeMemoryEntry: (
+    index: number,
+    profile?: string,
+    expected?: string,
+  ): Promise<{ success: boolean; error?: string; conflict?: boolean }> =>
+    ipcRenderer.invoke("remove-memory-entry", index, profile, expected),
   writeUserProfile: (
     content: string,
     profile?: string,
-  ): Promise<{ success: boolean; error?: string }> =>
-    ipcRenderer.invoke("write-user-profile", content, profile),
+    expected?: string,
+  ): Promise<{ success: boolean; error?: string; conflict?: boolean }> =>
+    ipcRenderer.invoke("write-user-profile", content, profile, expected),
 
   // Soul
   readSoul: (profile?: string): Promise<string> =>

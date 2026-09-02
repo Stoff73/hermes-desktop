@@ -2382,29 +2382,35 @@ export function registerIpcHandlers(context: IpcContext): void {
   );
   ipcMain.handle(
     "update-memory-entry",
-    (_event, index: number, content: string, profile?: string) => {
+    (
+      _event,
+      index: number,
+      content: string,
+      profile?: string,
+      expected?: string,
+    ) => {
       const conn = getConnectionConfig();
       if (conn.mode === "ssh" && conn.ssh)
-        return sshUpdateMemoryEntry(conn.ssh, index, content, profile);
-      return updateMemoryEntry(index, content, profile);
+        return sshUpdateMemoryEntry(conn.ssh, index, content, profile, expected);
+      return updateMemoryEntry(index, content, profile, expected);
     },
   );
   ipcMain.handle(
     "remove-memory-entry",
-    (_event, index: number, profile?: string) => {
+    (_event, index: number, profile?: string, expected?: string) => {
       const conn = getConnectionConfig();
       if (conn.mode === "ssh" && conn.ssh)
-        return sshRemoveMemoryEntry(conn.ssh, index, profile);
-      return removeMemoryEntry(index, profile);
+        return sshRemoveMemoryEntry(conn.ssh, index, profile, expected);
+      return removeMemoryEntry(index, profile, expected);
     },
   );
   ipcMain.handle(
     "write-user-profile",
-    (_event, content: string, profile?: string) => {
+    (_event, content: string, profile?: string, expected?: string) => {
       const conn = getConnectionConfig();
       if (conn.mode === "ssh" && conn.ssh)
-        return sshWriteUserProfile(conn.ssh, content, profile);
-      return writeUserProfile(content, profile);
+        return sshWriteUserProfile(conn.ssh, content, profile, expected);
+      return writeUserProfile(content, profile, expected);
     },
   );
 

@@ -18,6 +18,7 @@ import {
   type SkillSearchResult,
 } from "./skills";
 import type { MemoryInfo } from "./memory";
+import type { WriteResult } from "./memory-write";
 import type { HistoryItem, SessionSummary, SearchResult } from "./sessions";
 import type { CachedSession } from "./session-cache";
 import type { Attachment } from "../shared/attachments";
@@ -562,14 +563,15 @@ export async function sshUpdateMemoryEntry(
   index: number,
   content: string,
   profile?: string,
-): Promise<{ success: boolean; error?: string }> {
+  expected?: string,
+): Promise<WriteResult> {
   const [current, limits] = await Promise.all([
     sshReadFile(config, remoteMemoryPath(profile)),
     sshReadMemoryLimits(config, profile),
   ]);
   const entries = parseMemoryEntries(current);
-  if (index < 0 || index >= entries.length)
-    return { success: false, error: "Entry not found" };
+  const stale = sshEntryStale(entries, index, expected);
+  if (stale) return stale;
   entries[index] = { ...entries[index], content: content.trim() };
   const newContent = serializeEntries(entries);
   if (newContent.length > limits.memoryCharLimit) {
@@ -586,24 +588,27 @@ export async function sshRemoveMemoryEntry(
   config: SshConfig,
   index: number,
   profile?: string,
-): Promise<boolean> {
+  expected?: string,
+): Promise<WriteResult> {
   const current = await sshReadFile(config, remoteMemoryPath(profile));
   const entries = parseMemoryEntries(current);
-  if (index < 0 || index >= entries.length) return false;
+  const stale = sshEntryStale(entries, index, expected);
+  if (stale) return stale;
   entries.splice(index, 1);
   await sshWriteFile(
     config,
     remoteMemoryPath(profile),
     serializeEntries(entries),
   );
-  return true;
+  return { success: true };
 }
 
 export async function sshWriteUserProfile(
   config: SshConfig,
   content: string,
   profile?: string,
-): Promise<{ success: boolean; error?: string }> {
+  expected?: string,
+): Promise<WriteResult> {
   const limits = await sshReadMemoryLimits(config, profile);
   if (content.length > limits.userCharLimit) {
     return {
@@ -611,8 +616,40 @@ export async function sshWriteUserProfile(
       error: `Exceeds limit (${content.length}/${limits.userCharLimit} chars)`,
     };
   }
+  if (expected !== undefined) {
+    const current = await sshReadFile(config, remoteUserPath(profile));
+    if (current !== expected) return sshConflict();
+  }
   await sshWriteFile(config, remoteUserPath(profile), content);
   return { success: true };
+}
+
+// Over SSH there is no atomic compare-and-swap, only the expected-content
+// check; the remote write itself is a plain file write.
+function sshConflict(): WriteResult {
+  return {
+    success: false,
+    conflict: true,
+    error:
+      "The agent changed this file while you were editing. Your view has " +
+      "been reloaded — reapply your change.",
+  };
+}
+
+function sshEntryStale(
+  entries: { content: string }[],
+  index: number,
+  expected: string | undefined,
+): WriteResult | null {
+  if (index < 0 || index >= entries.length) {
+    return expected === undefined
+      ? { success: false, error: "Entry not found" }
+      : sshConflict();
+  }
+  if (expected !== undefined && entries[index].content !== expected.trim()) {
+    return sshConflict();
+  }
+  return null;
 }
 
 // ── Soul ─────────────────────────────────────────────────────────────────────

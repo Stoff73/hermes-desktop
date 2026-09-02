@@ -751,17 +751,23 @@ interface HermesAPI {
   addMemoryEntry: (
     content: string,
     profile?: string,
-  ) => Promise<{ success: boolean; error?: string }>;
+  ) => Promise<{ success: boolean; error?: string; conflict?: boolean }>;
   updateMemoryEntry: (
     index: number,
     content: string,
     profile?: string,
-  ) => Promise<{ success: boolean; error?: string }>;
-  removeMemoryEntry: (index: number, profile?: string) => Promise<boolean>;
+    expected?: string,
+  ) => Promise<{ success: boolean; error?: string; conflict?: boolean }>;
+  removeMemoryEntry: (
+    index: number,
+    profile?: string,
+    expected?: string,
+  ) => Promise<{ success: boolean; error?: string; conflict?: boolean }>;
   writeUserProfile: (
     content: string,
     profile?: string,
-  ) => Promise<{ success: boolean; error?: string }>;
+    expected?: string,
+  ) => Promise<{ success: boolean; error?: string; conflict?: boolean }>;
 
   // Soul
   readSoul: (profile?: string) => Promise<string>;

@@ -1,8 +1,13 @@
 import { existsSync, readFileSync, statSync } from "fs";
 import { join } from "path";
 import Database from "better-sqlite3";
-import { profileHome, safeWriteFile } from "./utils";
+import { profileHome } from "./utils";
 import { parseMemoryLimitsConfig, type MemoryLimits } from "./memory-limits";
+import {
+  mutateMemoryFile,
+  type Mutation,
+  type WriteResult,
+} from "./memory-write";
 
 const ENTRY_DELIMITER = "\n§\n";
 
@@ -85,9 +90,6 @@ function serializeEntries(entries: MemoryEntry[]): string {
   return entries.map((e) => e.content).join(ENTRY_DELIMITER);
 }
 
-// Use shared safeWriteFile from utils
-const writeFileSafe = safeWriteFile;
-
 function getSessionStats(profile?: string): {
   totalSessions: number;
   totalMessages: number;
@@ -149,90 +151,95 @@ export function readMemoryRaw(profile?: string): string {
 /**
  * Replace MEMORY.md wholesale. Used by cloud agent sync when the remote copy
  * wins — the content is the user's own cloud copy, so no entry parsing or
- * char-limit gate applies (safeWriteFile creates `memories/` when missing).
+ * char-limit gate applies, and there is no "what the user saw" to check
+ * against. Still goes through the compare-and-swap so a concurrent agent
+ * write is retried over rather than clobbered.
  */
-export function writeMemoryRaw(
-  content: string,
-  profile?: string,
-): { success: boolean; error?: string } {
-  try {
-    safeWriteFile(memoryPath(profile), content);
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: (err as Error).message };
-  }
+export function writeMemoryRaw(content: string, profile?: string): WriteResult {
+  return mutateMemoryFile(memoryPath(profile), () => ({ content }));
 }
 
 // ── Write operations ────────────────────────────────
 
-export function addMemoryEntry(
-  content: string,
-  profile?: string,
-): { success: boolean; error?: string } {
-  const filePath = memoryPath(profile);
-  const existing = readFileSafe(filePath);
-  const entries = parseMemoryEntries(existing.content);
-  const newContent = serializeEntries([
-    ...entries,
-    { index: entries.length, content: content.trim() },
-  ]);
-  const limits = readMemoryLimits(profile);
-
-  if (newContent.length > limits.memoryCharLimit) {
-    return {
-      success: false,
-      error: `Would exceed memory limit (${newContent.length}/${limits.memoryCharLimit} chars)`,
-    };
+/**
+ * Guard for index-addressed edits. `expected` is the entry text the user was
+ * looking at. If the index is gone or holds different text now, the agent has
+ * reordered the file underneath the user and the edit must not land.
+ */
+function entryStillMatches(
+  entries: MemoryEntry[],
+  index: number,
+  expected: string | undefined,
+): Mutation | null {
+  if (index < 0 || index >= entries.length) {
+    return expected === undefined
+      ? { error: "Entry not found" }
+      : { conflict: true };
   }
+  if (expected !== undefined && entries[index].content !== expected.trim()) {
+    return { conflict: true };
+  }
+  return null;
+}
 
-  writeFileSafe(filePath, newContent);
-  return { success: true };
+export function addMemoryEntry(content: string, profile?: string): WriteResult {
+  const limits = readMemoryLimits(profile);
+  return mutateMemoryFile(memoryPath(profile), (current) => {
+    const entries = parseMemoryEntries(current);
+    const next = serializeEntries([
+      ...entries,
+      { index: entries.length, content: content.trim() },
+    ]);
+    if (next.length > limits.memoryCharLimit) {
+      return {
+        error: `Would exceed memory limit (${next.length}/${limits.memoryCharLimit} chars)`,
+      };
+    }
+    return { content: next };
+  });
 }
 
 export function updateMemoryEntry(
   index: number,
   content: string,
   profile?: string,
-): { success: boolean; error?: string } {
-  const filePath = memoryPath(profile);
-  const existing = readFileSafe(filePath);
-  const entries = parseMemoryEntries(existing.content);
-
-  if (index < 0 || index >= entries.length) {
-    return { success: false, error: "Entry not found" };
-  }
-
-  entries[index] = { ...entries[index], content: content.trim() };
-  const newContent = serializeEntries(entries);
+  expected?: string,
+): WriteResult {
   const limits = readMemoryLimits(profile);
-
-  if (newContent.length > limits.memoryCharLimit) {
-    return {
-      success: false,
-      error: `Would exceed memory limit (${newContent.length}/${limits.memoryCharLimit} chars)`,
-    };
-  }
-
-  writeFileSafe(filePath, newContent);
-  return { success: true };
+  return mutateMemoryFile(memoryPath(profile), (current) => {
+    const entries = parseMemoryEntries(current);
+    const stale = entryStillMatches(entries, index, expected);
+    if (stale) return stale;
+    entries[index] = { ...entries[index], content: content.trim() };
+    const next = serializeEntries(entries);
+    if (next.length > limits.memoryCharLimit) {
+      return {
+        error: `Would exceed memory limit (${next.length}/${limits.memoryCharLimit} chars)`,
+      };
+    }
+    return { content: next };
+  });
 }
 
-export function removeMemoryEntry(index: number, profile?: string): boolean {
-  const filePath = memoryPath(profile);
-  const existing = readFileSafe(filePath);
-  const entries = parseMemoryEntries(existing.content);
-
-  if (index < 0 || index >= entries.length) return false;
-
-  entries.splice(index, 1);
-  writeFileSafe(filePath, serializeEntries(entries));
-  return true;
+export function removeMemoryEntry(
+  index: number,
+  profile?: string,
+  expected?: string,
+): WriteResult {
+  return mutateMemoryFile(memoryPath(profile), (current) => {
+    const entries = parseMemoryEntries(current);
+    const stale = entryStillMatches(entries, index, expected);
+    if (stale) return stale;
+    entries.splice(index, 1);
+    return { content: serializeEntries(entries) };
+  });
 }
 
 export function writeUserProfile(
   content: string,
   profile?: string,
-): { success: boolean; error?: string } {
+  expected?: string,
+): WriteResult {
   const limits = readMemoryLimits(profile);
   if (content.length > limits.userCharLimit) {
     return {
@@ -240,6 +247,8 @@ export function writeUserProfile(
       error: `Exceeds limit (${content.length}/${limits.userCharLimit} chars)`,
     };
   }
-  writeFileSafe(userPath(profile), content);
-  return { success: true };
+  return mutateMemoryFile(userPath(profile), (current) => {
+    if (expected !== undefined && current !== expected) return { conflict: true };
+    return { content };
+  });
 }
