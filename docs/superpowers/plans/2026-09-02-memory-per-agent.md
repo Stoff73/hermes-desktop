@@ -48,8 +48,8 @@ This plan is written for an agent (Opus 5) executing inline in one session. Foll
 | 0 | Branch and baseline | done | (no code) |
 | 1 | Compare-and-swap writes with an expected-content check | done | b04741d |
 | 2 | Route every memory writer through the check | done | 75c32bc |
-| 3 | Fix `getActiveMemoryProvider` reading the LLM provider | in progress | |
-| 4 | Per-profile session reader | not started | |
+| 3 | Fix `getActiveMemoryProvider` reading the LLM provider | done | 0aad884 |
+| 4 | Per-profile session reader | in progress | |
 | 5 | Five-system `MemoryInfo` contract and its consumers | not started | |
 | 6 | Cross-agent memory summary reader and IPC | not started | |
 | 7 | Systems inventory, vault pane, capacity tone, styles | not started | |
@@ -948,7 +948,7 @@ git commit -m "fix(memory): read memory.provider instead of any provider: line"
   - `readSessionMemory(profile?: string): SessionMemory`
 - The real `sessions` table has `started_at REAL NOT NULL` (unix seconds, possibly fractional); `lastSessionAt` is floored to whole seconds.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/main/memory-session.test.ts
@@ -1021,12 +1021,12 @@ describe("readSessionMemory", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/main/memory-session.test.ts`
 Expected: FAIL — cannot resolve `./memory-session`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```ts
 // src/main/memory-session.ts
@@ -1089,12 +1089,12 @@ export function readSessionMemory(profile?: string): SessionMemory {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/main/memory-session.test.ts`
 Expected: PASS, 3 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/main/memory-session.ts src/main/memory-session.test.ts docs/superpowers/plans/2026-09-02-memory-per-agent.md
@@ -4534,3 +4534,16 @@ Recorded on `feat/agent-settings-memory` at `25d1fc3` + the lockfile commit.
   3 skipped). These two are the handover's known pre-existing failures.
 - A first full run under load also failed `src/renderer/src/components/AgentMarkdown.test.tsx`
   on a 5s timeout; it passes in isolation and did not recur. Load flake, not a baseline failure.
+
+### Task 4 — test adapted to the repo's sqlite mock
+
+The plan's Task 4 test seeded a real `better-sqlite3` database. That cannot run
+here: `postinstall` runs `electron-builder install-app-deps`, so the native
+binding is built for Electron's ABI (NODE_MODULE_VERSION 140) and vitest, on
+plain Node (127), refuses to load it. Every other db-touching test in the repo
+mocks the module for the same reason (`tests/db.test.ts`).
+
+The test now mocks `better-sqlite3` with a constructible fake serving one row
+per database path, and keeps all three original assertions plus one that the
+handle is opened `{ readonly: true }` and closed. Note for later tasks: a
+vitest 4 mock must use the `function` keyword to be constructible.
