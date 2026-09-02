@@ -54,6 +54,13 @@ export default {
   sectionPersona: "Persona",
   sectionAgentMemory: "Memory",
   agentSettings: "Agent settings",
+  modelLabel: "Model",
+  modelHint:
+    "Which model and provider this agent uses. Saved to this agent's own config.",
+  modelKeyMissing:
+    "This agent has no {{key}} in its .env. Paste the key to use this provider.",
+  modelKeyOAuthHint:
+    "For providers you sign in to (OAuth), connect from Providers with this agent active.",
   sectionWallet: "Wallet",
   sectionSync: "Sync",
   sectionAdvanced: "Advanced",

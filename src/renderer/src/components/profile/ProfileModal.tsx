@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  Brain,
   Database,
-  Plug,
   Pencil,
   Puzzle,
   Refresh,
@@ -27,6 +25,7 @@ import type {
 import { AppModal, AppModalTitle } from "../modal/AppModal";
 import ProfileWalletPane from "./ProfileWalletPane";
 import ProfileSyncPane from "./ProfileSyncPane";
+import ProfileModelPicker from "./ProfileModelPicker";
 import { OrbLoader } from "../OrbLoader";
 import type { ProfileSection } from "./ProfileModalContext";
 
@@ -274,12 +273,6 @@ export default function ProfileModal({
     }
   }
 
-  function providerLabel(provider: string): string {
-    if (!provider || provider === "auto") return t("agents.auto");
-    if (provider === "custom") return t("agents.local");
-    return provider.charAt(0).toUpperCase() + provider.slice(1);
-  }
-
   const profileChips: ReadonlyArray<{
     key: string;
     value: string;
@@ -287,18 +280,6 @@ export default function ProfileModal({
     state?: "on" | "off";
   }> = profile
     ? [
-        {
-          key: "provider",
-          value: providerLabel(profile.provider),
-          Icon: Plug,
-        },
-        {
-          key: "model",
-          value: profile.model
-            ? profile.model.split("/").pop() || profile.model
-            : t("agents.noModel"),
-          Icon: Brain,
-        },
         {
           key: "skills",
           value: t("agents.skillsCount", { count: profile.skillCount }),
@@ -478,6 +459,8 @@ export default function ProfileModal({
                     </span>
                   ))}
                 </div>
+
+                <ProfileModelPicker profile={profile.id} />
 
                 <div className="profile-modal-section">
                   <span className="profile-modal-label">

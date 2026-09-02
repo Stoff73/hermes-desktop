@@ -35,6 +35,10 @@ vi.mock("../../screens/Memory/MemorySystems", () => ({
   MemorySystems: (): React.JSX.Element => <div data-testid="memory" />,
 }));
 
+vi.mock("./ProfileModelPicker", () => ({
+  default: (): React.JSX.Element => <div data-testid="model-picker" />,
+}));
+
 vi.mock("./ProfileWalletPane", () => ({
   default: (): React.JSX.Element => <div data-testid="wallet" />,
 }));

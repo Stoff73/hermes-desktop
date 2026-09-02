@@ -55,8 +55,8 @@ This plan is written for an agent (Opus 5) executing inline in one session. Foll
 | 7 | Systems inventory, vault pane, capacity tone, styles | done | bd6e660 |
 | 8 | Conflict-aware editors | done | 29292db |
 | 9 | Agent Settings: Memory tab and naming | done | 0a51d38 |
-| 10 | Memory screen becomes the cross-agent overview | in progress | |
-| 11 | Agent Settings: model and provider in the Profile tab | not started | |
+| 10 | Memory screen becomes the cross-agent overview | done | 7b8f693 |
+| 11 | Agent Settings: model and provider in the Profile tab | in progress | |
 | 12 | Documentation and full verification | not started | |
 | 13 | Finish the branch | not started | |
 
@@ -3835,7 +3835,7 @@ git commit -m "feat(memory): Memory screen becomes a read-only cross-agent overv
   - `window.hermesAPI.setEnv(key, value, profile): Promise<boolean>`.
 - Produces: `<ProfileModelPicker profile={string} />` (default export). Nothing later depends on it.
 
-- [ ] **Step 1: Add the strings**
+- [x] **Step 1: Add the strings**
 
 In `src/shared/i18n/locales/en/agents.ts`, after `agentSettings: "Agent settings",` add:
 
@@ -3849,7 +3849,7 @@ In `src/shared/i18n/locales/en/agents.ts`, after `agentSettings: "Agent settings
     "For providers you sign in to (OAuth), connect from Providers with this agent active.",
 ```
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 ```tsx
 // src/renderer/src/components/profile/ProfileModelPicker.test.tsx
@@ -3965,12 +3965,12 @@ describe("ProfileModelPicker", () => {
 });
 ```
 
-- [ ] **Step 3: Run it to verify it fails**
+- [x] **Step 3: Run it to verify it fails**
 
 Run: `npx vitest run src/renderer/src/components/profile/ProfileModelPicker.test.tsx`
 Expected: FAIL — cannot resolve `./ProfileModelPicker`.
 
-- [ ] **Step 4: Implement the picker**
+- [x] **Step 4: Implement the picker**
 
 ```tsx
 // src/renderer/src/components/profile/ProfileModelPicker.tsx
@@ -4118,12 +4118,12 @@ export default function ProfileModelPicker({
 }
 ```
 
-- [ ] **Step 5: Run the picker test to verify it passes**
+- [x] **Step 5: Run the picker test to verify it passes**
 
 Run: `npx vitest run src/renderer/src/components/profile/ProfileModelPicker.test.tsx`
 Expected: PASS, 4 tests.
 
-- [ ] **Step 6: Mount it in the Profile tab and retire the read-only chips**
+- [x] **Step 6: Mount it in the Profile tab and retire the read-only chips**
 
 In `src/renderer/src/components/profile/ProfileModal.tsx`:
 
@@ -4180,12 +4180,12 @@ vi.mock("./ProfileModelPicker", () => ({
 }
 ```
 
-- [ ] **Step 7: Run the profile tests, lint and typecheck**
+- [x] **Step 7: Run the profile tests, lint and typecheck**
 
 Run: `npx vitest run src/renderer/src/components/profile/ && npx eslint src/renderer/src/components/profile/ && npm run typecheck:web`
 Expected: PASS; no unused-import lint errors; typecheck clean.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/renderer/src/components/profile/ src/shared/i18n/locales/en/agents.ts src/renderer/src/assets/main.css docs/superpowers/plans/2026-09-02-memory-per-agent.md
