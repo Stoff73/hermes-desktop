@@ -39,3 +39,22 @@ export interface MemoryProviderInfo {
 }
 
 export type MemoryTab = "entries" | "profile" | "providers" | "soul";
+
+/** Mirrors `AgentMemorySummary` in src/main/agents-memory.ts. */
+export interface AgentMemorySummary {
+  id: string;
+  name: string;
+  isActive: boolean;
+  color?: string;
+  avatar?: string | null;
+  memoryChars: number;
+  memoryLimit: number;
+  memoryEntries: number;
+  userChars: number;
+  userLimit: number;
+  totalSessions: number;
+  lastSessionAt: number | null;
+  provider: string | null;
+  vaultLinked: boolean;
+  available: boolean;
+}

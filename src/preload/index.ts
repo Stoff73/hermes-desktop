@@ -1051,6 +1051,25 @@ const hermesAPI = {
     provider: { active: string | null; installed: boolean };
     vault: { path: string | null; exists: boolean };
   }> => ipcRenderer.invoke("read-memory", profile),
+  readAllAgentsMemory: (): Promise<
+    Array<{
+      id: string;
+      name: string;
+      isActive: boolean;
+      color?: string;
+      avatar?: string | null;
+      memoryChars: number;
+      memoryLimit: number;
+      memoryEntries: number;
+      userChars: number;
+      userLimit: number;
+      totalSessions: number;
+      lastSessionAt: number | null;
+      provider: string | null;
+      vaultLinked: boolean;
+      available: boolean;
+    }>
+  > => ipcRenderer.invoke("read-all-agents-memory"),
 
   addMemoryEntry: (
     content: string,

@@ -767,6 +767,25 @@ interface HermesAPI {
     provider: { active: string | null; installed: boolean };
     vault: { path: string | null; exists: boolean };
   }>;
+  readAllAgentsMemory: () => Promise<
+    Array<{
+      id: string;
+      name: string;
+      isActive: boolean;
+      color?: string;
+      avatar?: string | null;
+      memoryChars: number;
+      memoryLimit: number;
+      memoryEntries: number;
+      userChars: number;
+      userLimit: number;
+      totalSessions: number;
+      lastSessionAt: number | null;
+      provider: string | null;
+      vaultLinked: boolean;
+      available: boolean;
+    }>
+  >;
 
   addMemoryEntry: (
     content: string,

@@ -290,6 +290,11 @@ import {
   removeMemoryEntry,
   writeUserProfile,
 } from "../memory";
+import {
+  readAllAgentsMemory,
+  summariseAgentMemory,
+  unavailableAgentMemory,
+} from "../agents-memory";
 import { readSoul, writeSoul, resetSoul } from "../soul";
 import {
   getPlatformToolsets,
@@ -2370,6 +2375,30 @@ export function registerIpcHandlers(context: IpcContext): void {
     if (conn.mode === "ssh" && conn.ssh)
       return sshReadMemory(conn.ssh, profile);
     return readMemory(profile);
+  });
+  ipcMain.handle("read-all-agents-memory", async () => {
+    const conn = getConnectionConfig();
+    if (conn.mode === "ssh" && conn.ssh) {
+      // list-profiles and read-memory are both already SSH-aware. A local-only
+      // summary would list LOCAL agents while drilling into REMOTE memory.
+      const remote = conn.ssh;
+      const profiles = await sshListProfiles(remote);
+      return Promise.all(
+        profiles.map(async (p) => {
+          // SshProfileInfo has no id; its name is the directory slug.
+          const base = { id: p.name, name: p.name, isActive: p.isActive };
+          try {
+            return summariseAgentMemory(
+              base,
+              await sshReadMemory(remote, p.name),
+            );
+          } catch {
+            return unavailableAgentMemory(base);
+          }
+        }),
+      );
+    }
+    return readAllAgentsMemory();
   });
   ipcMain.handle(
     "add-memory-entry",

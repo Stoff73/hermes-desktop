@@ -50,8 +50,8 @@ This plan is written for an agent (Opus 5) executing inline in one session. Foll
 | 2 | Route every memory writer through the check | done | 75c32bc |
 | 3 | Fix `getActiveMemoryProvider` reading the LLM provider | done | 0aad884 |
 | 4 | Per-profile session reader | done | 10621c7 |
-| 5 | Five-system `MemoryInfo` contract and its consumers | in progress | |
-| 6 | Cross-agent memory summary reader and IPC | not started | |
+| 5 | Five-system `MemoryInfo` contract and its consumers | done | b29f77a |
+| 6 | Cross-agent memory summary reader and IPC | in progress | |
 | 7 | Systems inventory, vault pane, capacity tone, styles | not started | |
 | 8 | Conflict-aware editors | not started | |
 | 9 | Agent Settings: Memory tab and naming | not started | |
@@ -1606,7 +1606,7 @@ export async function readAllAgentsMemory(): Promise<AgentMemorySummary[]>
 
 exposed as `window.hermesAPI.readAllAgentsMemory(): Promise<AgentMemorySummary[]>`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/main/agents-memory.test.ts
@@ -1681,12 +1681,12 @@ describe("readAllAgentsMemory", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/main/agents-memory.test.ts`
 Expected: FAIL — cannot resolve `./agents-memory`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```ts
 // src/main/agents-memory.ts
@@ -1782,7 +1782,7 @@ export async function readAllAgentsMemory(): Promise<AgentMemorySummary[]> {
 
 If `ProfileInfo` in `src/main/profiles.ts` does not declare `color`/`avatar`, check what `listProfiles` actually returns (it is what `ProfileModal.tsx:30-45` mirrors, which has both) and adapt the two field reads to the real names; do not add fields to `ProfileInfo` for this.
 
-- [ ] **Step 4: Register the IPC, SSH-aware**
+- [x] **Step 4: Register the IPC, SSH-aware**
 
 In `src/main/ipc/register.ts`, add to the imports:
 
@@ -1820,7 +1820,7 @@ import {
   });
 ```
 
-- [ ] **Step 5: Expose it in preload and the renderer types**
+- [x] **Step 5: Expose it in preload and the renderer types**
 
 In `src/preload/index.ts`, directly after the `readMemory` entry:
 
@@ -1871,12 +1871,12 @@ export interface AgentMemorySummary {
 }
 ```
 
-- [ ] **Step 6: Run test and typecheck**
+- [x] **Step 6: Run test and typecheck**
 
 Run: `npx vitest run src/main/agents-memory.test.ts && npm run typecheck`
 Expected: PASS, 3 tests; typecheck clean.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/main/agents-memory.ts src/main/agents-memory.test.ts src/main/ipc/register.ts src/preload/index.ts src/preload/index.d.ts src/renderer/src/screens/Memory/types.ts docs/superpowers/plans/2026-09-02-memory-per-agent.md
