@@ -49,8 +49,8 @@ This plan is written for an agent (Opus 5) executing inline in one session. Foll
 | 1 | Compare-and-swap writes with an expected-content check | done | b04741d |
 | 2 | Route every memory writer through the check | done | 75c32bc |
 | 3 | Fix `getActiveMemoryProvider` reading the LLM provider | done | 0aad884 |
-| 4 | Per-profile session reader | in progress | |
-| 5 | Five-system `MemoryInfo` contract and its consumers | not started | |
+| 4 | Per-profile session reader | done | 10621c7 |
+| 5 | Five-system `MemoryInfo` contract and its consumers | in progress | |
 | 6 | Cross-agent memory summary reader and IPC | not started | |
 | 7 | Systems inventory, vault pane, capacity tone, styles | not started | |
 | 8 | Conflict-aware editors | not started | |
@@ -1138,7 +1138,7 @@ export interface MemoryInfo {
 
 `stats` is gone. The renderer's `MemoryData` mirrors this exactly.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/main/memory-contract.test.ts
@@ -1199,12 +1199,12 @@ describe("readMemory contract", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/main/memory-contract.test.ts`
 Expected: FAIL — `d.sessions` is undefined.
 
-- [ ] **Step 3: Extend `MemoryInfo` and `readMemory` in `src/main/memory.ts`**
+- [x] **Step 3: Extend `MemoryInfo` and `readMemory` in `src/main/memory.ts`**
 
 Delete `getSessionStats` (lines 91-119) and the `import Database from "better-sqlite3";` line. Add these imports:
 
@@ -1294,12 +1294,12 @@ In `readMemory`, replace `stats: getSessionStats(profile),` with:
     vault: readVaultMemory(profile),
 ```
 
-- [ ] **Step 4: Run the contract test**
+- [x] **Step 4: Run the contract test**
 
 Run: `npx vitest run src/main/memory-contract.test.ts`
 Expected: PASS, 5 tests. If the vault test fails because `readEnv` returned a cached empty map, the `.env` was read before it was written — the test writes it first, so check the order rather than adding cache-busting.
 
-- [ ] **Step 5: Mirror the shape over SSH**
+- [x] **Step 5: Mirror the shape over SSH**
 
 In `src/main/ssh-remote.ts`, change the `sshGetSessionStats` return type and script (lines 475-503) to:
 
@@ -1402,7 +1402,7 @@ Add `import type { SessionMemory } from "./memory-session";` beside the other ty
   };
 ```
 
-- [ ] **Step 6: Mirror the shape in preload and renderer types**
+- [x] **Step 6: Mirror the shape in preload and renderer types**
 
 In `src/preload/index.ts`, replace the `readMemory` entry with:
 
@@ -1484,7 +1484,7 @@ export interface MemoryProviderInfo {
 export type MemoryTab = "entries" | "profile" | "providers" | "soul";
 ```
 
-- [ ] **Step 7: Remove the two `stats` readers**
+- [x] **Step 7: Remove the two `stats` readers**
 
 Delete `src/renderer/src/screens/Memory/CapacityCards.tsx` (`git rm`). In `src/renderer/src/screens/Memory/Memory.tsx` delete line 6 (`import { CapacityCards } from "./CapacityCards";`) and line 64 (`<CapacityCards data={data} />`). Task 10 rewrites this file; a screen without summary cards in between is fine.
 
@@ -1558,12 +1558,12 @@ In `src/renderer/src/components/profile/ProfileModal.test.tsx:87`, replace `read
       }),
 ```
 
-- [ ] **Step 8: Typecheck and run the affected tests**
+- [x] **Step 8: Typecheck and run the affected tests**
 
 Run: `npm run typecheck && npx vitest run src/main/memory-contract.test.ts src/renderer/src/components/profile/`
 Expected: typecheck clean; all PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add src/main/memory.ts src/main/memory-contract.test.ts src/main/ssh-remote.ts src/preload/index.ts src/preload/index.d.ts src/renderer/src/screens/Memory/types.ts src/renderer/src/screens/Memory/Memory.tsx src/renderer/src/screens/Chat/hooks/useLocalCommands.ts src/shared/i18n/locales/en/memory.ts src/renderer/src/assets/main.css src/renderer/src/components/profile/ProfileModal.test.tsx docs/superpowers/plans/2026-09-02-memory-per-agent.md

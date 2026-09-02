@@ -68,7 +68,18 @@ export function useLocalCommands({
             lines.push(t("memory.noMemoryEntries"));
           }
           lines.push(
-            `\n**Stats:** ${mem.stats.totalSessions} sessions, ${mem.stats.totalMessages} messages`,
+            `\n**User Profile:** ${mem.user.charCount}/${mem.user.charLimit} chars`,
+          );
+          lines.push(
+            mem.sessions.available
+              ? `**Session Search:** ${mem.sessions.totalSessions} sessions, ${mem.sessions.totalMessages} messages`
+              : `**Session Search:** ${t("memory.sessionsUnavailable")}`,
+          );
+          lines.push(
+            `**Provider:** ${mem.provider.active ?? t("memory.providerBuiltIn")}`,
+          );
+          lines.push(
+            `**Obsidian Vault:** ${mem.vault.path ?? t("memory.vaultNotLinked")}`,
           );
           addAgentMessage(lines.join("\n"));
           return true;

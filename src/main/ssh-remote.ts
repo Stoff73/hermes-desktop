@@ -19,6 +19,7 @@ import {
 } from "./skills";
 import type { MemoryInfo } from "./memory";
 import type { WriteResult } from "./memory-write";
+import type { SessionMemory } from "./memory-session";
 import type { HistoryItem, SessionSummary, SearchResult } from "./sessions";
 import type { CachedSession } from "./session-cache";
 import type { Attachment } from "../shared/attachments";
@@ -476,22 +477,24 @@ async function sshReadMemoryLimits(
 async function sshGetSessionStats(
   config: SshConfig,
   profile?: string,
-): Promise<{ totalSessions: number; totalMessages: number }> {
+): Promise<SessionMemory> {
   const script = `
 import sqlite3, json, os, sys
 payload = json.load(sys.stdin)
 profile = payload.get("profile")
 db = os.path.expanduser(f"~/.hermes/profiles/{profile}/state.db" if profile and profile != "default" else "~/.hermes/state.db")
+unavailable = {"totalSessions": 0, "totalMessages": 0, "lastSessionAt": None, "available": False}
 if not os.path.exists(db):
-    print(json.dumps({"totalSessions": 0, "totalMessages": 0}))
+    print(json.dumps(unavailable))
     sys.exit(0)
 conn = sqlite3.connect(db)
 try:
     s = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
     m = conn.execute("SELECT COUNT(*) FROM messages").fetchone()[0]
-    print(json.dumps({"totalSessions": s, "totalMessages": m}))
-except:
-    print(json.dumps({"totalSessions": 0, "totalMessages": 0}))
+    last = conn.execute("SELECT MAX(started_at) FROM sessions").fetchone()[0]
+    print(json.dumps({"totalSessions": s, "totalMessages": m, "lastSessionAt": int(last) if last else None, "available": True}))
+except Exception:
+    print(json.dumps(unavailable))
 finally:
     conn.close()
 `;
@@ -499,7 +502,26 @@ finally:
     const out = await sshPython(config, script, pythonJsonInput({ profile }));
     return JSON.parse(out.trim());
   } catch {
-    return { totalSessions: 0, totalMessages: 0 };
+    return {
+      totalSessions: 0,
+      totalMessages: 0,
+      lastSessionAt: null,
+      available: false,
+    };
+  }
+}
+
+async function sshDirExists(config: SshConfig, path: string): Promise<boolean> {
+  const script = `
+import json, os, sys
+payload = json.load(sys.stdin)
+print(json.dumps({"exists": os.path.isdir(os.path.expanduser(payload.get("path", "")))}))
+`;
+  try {
+    const out = await sshPython(config, script, pythonJsonInput({ path }));
+    return Boolean(JSON.parse(out.trim()).exists);
+  } catch {
+    return false;
   }
 }
 
@@ -507,12 +529,18 @@ export async function sshReadMemory(
   config: SshConfig,
   profile?: string,
 ): Promise<MemoryInfo> {
-  const [memContent, userContent, stats, limits] = await Promise.all([
-    sshReadFile(config, remoteMemoryPath(profile)),
-    sshReadFile(config, remoteUserPath(profile)),
-    sshGetSessionStats(config, profile),
-    sshReadMemoryLimits(config, profile),
-  ]);
+  const [memContent, userContent, sessions, limits, env, memoryProvider] =
+    await Promise.all([
+      sshReadFile(config, remoteMemoryPath(profile)),
+      sshReadFile(config, remoteUserPath(profile)),
+      sshGetSessionStats(config, profile),
+      sshReadMemoryLimits(config, profile),
+      sshReadEnv(config, profile),
+      // ssh-remote.ts does not import getYamlPath (it has its own
+      // locateInYaml); use the existing remote config reader.
+      sshGetConfigValue(config, "memory.provider", profile),
+    ]);
+  const vaultPath = (env.OBSIDIAN_VAULT_PATH ?? "").trim() || null;
 
   return {
     memory: {
@@ -530,7 +558,17 @@ export async function sshReadMemory(
       charCount: userContent.length,
       charLimit: limits.userCharLimit,
     },
-    stats,
+    sessions,
+    provider: {
+      active: (memoryProvider ?? "").trim() || null,
+      // Checking the remote plugin directory is not cheaply available; the
+      // provider row shows the active name without an installed warning.
+      installed: true,
+    },
+    vault: {
+      path: vaultPath,
+      exists: vaultPath ? await sshDirExists(config, vaultPath) : false,
+    },
   };
 }
 

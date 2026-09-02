@@ -84,7 +84,31 @@ function installHermesAPI(profiles: ProfileInfo[]): {
       setProfileAvatar: vi.fn().mockResolvedValue({ success: true }),
       removeProfileAvatar: vi.fn().mockResolvedValue({ success: true }),
       deleteProfile: vi.fn().mockResolvedValue({ success: true }),
-      readMemory: vi.fn().mockResolvedValue({ entries: [] }),
+      readMemory: vi.fn().mockResolvedValue({
+        memory: {
+          content: "",
+          exists: false,
+          lastModified: null,
+          entries: [],
+          charCount: 0,
+          charLimit: 2200,
+        },
+        user: {
+          content: "",
+          exists: false,
+          lastModified: null,
+          charCount: 0,
+          charLimit: 1375,
+        },
+        sessions: {
+          totalSessions: 0,
+          totalMessages: 0,
+          lastSessionAt: null,
+          available: false,
+        },
+        provider: { active: null, installed: false },
+        vault: { path: null, exists: false },
+      }),
     },
   });
   return { setProfileName };

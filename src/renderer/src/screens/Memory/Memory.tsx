@@ -3,7 +3,6 @@ import { Refresh } from "../../assets/icons";
 import { useI18n } from "../../components/useI18n";
 import { OrbLoader } from "../../components/OrbLoader";
 import Soul from "../Soul/Soul";
-import { CapacityCards } from "./CapacityCards";
 import { MemoryTabs } from "./MemoryTabs";
 import { MemoryEntries } from "./MemoryEntries";
 import { MemoryProfile } from "./MemoryProfile";
@@ -61,7 +60,6 @@ function Memory({ profile }: { profile?: string }): React.JSX.Element {
         </button>
       </div>
 
-      <CapacityCards data={data} />
       <MemoryTabs activeTab={tab} onTabChange={setTab} />
 
       {error && <div className="memory-error">{error}</div>}

@@ -44,6 +44,9 @@ export default {
   deactivate: "Deactivate",
   activating: "Activating...",
   activate: "Activate",
+  sessionsUnavailable: "No sessions recorded yet",
+  providerBuiltIn: "Built-in only",
+  vaultNotLinked: "Not linked",
   providers: {
     honcho:
       "AI-native cross-session user modeling with dialectic Q&A and semantic search",

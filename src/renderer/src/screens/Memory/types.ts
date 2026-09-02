@@ -3,6 +3,7 @@ export interface MemoryEntry {
   content: string;
 }
 
+/** Mirrors `MemoryInfo` in src/main/memory.ts. */
 export interface MemoryData {
   memory: {
     content: string;
@@ -19,7 +20,14 @@ export interface MemoryData {
     charCount: number;
     charLimit: number;
   };
-  stats: { totalSessions: number; totalMessages: number };
+  sessions: {
+    totalSessions: number;
+    totalMessages: number;
+    lastSessionAt: number | null;
+    available: boolean;
+  };
+  provider: { active: string | null; installed: boolean };
+  vault: { path: string | null; exists: boolean };
 }
 
 export interface MemoryProviderInfo {

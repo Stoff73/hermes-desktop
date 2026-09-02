@@ -743,9 +743,29 @@ interface HermesAPI {
 
   // Memory
   readMemory: (profile?: string) => Promise<{
-    memory: { content: string; exists: boolean; lastModified: number | null };
-    user: { content: string; exists: boolean; lastModified: number | null };
-    stats: { totalSessions: number; totalMessages: number };
+    memory: {
+      content: string;
+      exists: boolean;
+      lastModified: number | null;
+      entries: { index: number; content: string }[];
+      charCount: number;
+      charLimit: number;
+    };
+    user: {
+      content: string;
+      exists: boolean;
+      lastModified: number | null;
+      charCount: number;
+      charLimit: number;
+    };
+    sessions: {
+      totalSessions: number;
+      totalMessages: number;
+      lastSessionAt: number | null;
+      available: boolean;
+    };
+    provider: { active: string | null; installed: boolean };
+    vault: { path: string | null; exists: boolean };
   }>;
 
   addMemoryEntry: (

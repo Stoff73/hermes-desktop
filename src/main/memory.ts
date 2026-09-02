@@ -1,6 +1,5 @@
 import { existsSync, readFileSync, statSync } from "fs";
 import { join } from "path";
-import Database from "better-sqlite3";
 import { profileHome } from "./utils";
 import { parseMemoryLimitsConfig, type MemoryLimits } from "./memory-limits";
 import {
@@ -8,12 +7,29 @@ import {
   type Mutation,
   type WriteResult,
 } from "./memory-write";
+import { readSessionMemory, type SessionMemory } from "./memory-session";
+import { getActiveMemoryProvider, discoverMemoryProviders } from "./installer";
+import { readEnv } from "./config";
 
 const ENTRY_DELIMITER = "\n§\n";
 
 export interface MemoryEntry {
   index: number;
   content: string;
+}
+
+export interface ProviderMemory {
+  /** memory.provider from config.yaml, or null when built-in only. */
+  active: string | null;
+  /** The active provider's plugin is present in this installation. */
+  installed: boolean;
+}
+
+export interface VaultMemory {
+  /** OBSIDIAN_VAULT_PATH from the profile .env, or null when unset. */
+  path: string | null;
+  /** That directory exists on this machine. */
+  exists: boolean;
 }
 
 export interface MemoryInfo {
@@ -32,7 +48,9 @@ export interface MemoryInfo {
     charCount: number;
     charLimit: number;
   };
-  stats: { totalSessions: number; totalMessages: number };
+  sessions: SessionMemory;
+  provider: ProviderMemory;
+  vault: VaultMemory;
 }
 
 function memoryPath(profile?: string): string {
@@ -90,33 +108,32 @@ function serializeEntries(entries: MemoryEntry[]): string {
   return entries.map((e) => e.content).join(ENTRY_DELIMITER);
 }
 
-function getSessionStats(profile?: string): {
-  totalSessions: number;
-  totalMessages: number;
-} {
-  const home = profileHome(profile);
-  const dbPath = join(home, "state.db");
-  if (!existsSync(dbPath)) return { totalSessions: 0, totalMessages: 0 };
-
+function readProviderMemory(profile?: string): ProviderMemory {
   try {
-    const db = new Database(dbPath, { readonly: true });
-    try {
-      const sessionRow = db
-        .prepare("SELECT COUNT(*) as count FROM sessions")
-        .get() as { count: number } | undefined;
-      const messageRow = db
-        .prepare("SELECT COUNT(*) as count FROM messages")
-        .get() as { count: number } | undefined;
-      return {
-        totalSessions: sessionRow?.count ?? 0,
-        totalMessages: messageRow?.count ?? 0,
-      };
-    } finally {
-      db.close();
-    }
-  } catch (err) {
-    console.error("[memory] getSessionStats failed:", err);
-    return { totalSessions: 0, totalMessages: 0 };
+    // `|| null` matters: MemoryProviders.handleDeactivate writes
+    // `memory.provider: ""`, and `"" ?? fallback` would render an empty string.
+    const active = getActiveMemoryProvider(profile) || null;
+    if (!active) return { active: null, installed: false };
+    const installed = discoverMemoryProviders(profile).some(
+      (p) => p.name === active,
+    );
+    return { active, installed };
+  } catch {
+    return { active: null, installed: false };
+  }
+}
+
+/**
+ * The Obsidian vault is not a memory provider; it is a folder the agent's
+ * bundled note-taking skill reads and writes, located by OBSIDIAN_VAULT_PATH
+ * in the profile .env. The desktop only ever writes that path.
+ */
+function readVaultMemory(profile?: string): VaultMemory {
+  try {
+    const path = (readEnv(profile).OBSIDIAN_VAULT_PATH ?? "").trim() || null;
+    return { path, exists: !!path && existsSync(path) };
+  } catch {
+    return { path: null, exists: false };
   }
 }
 
@@ -139,7 +156,9 @@ export function readMemory(profile?: string): MemoryInfo {
       charCount: userFile.content.length,
       charLimit: limits.userCharLimit,
     },
-    stats: getSessionStats(profile),
+    sessions: readSessionMemory(profile),
+    provider: readProviderMemory(profile),
+    vault: readVaultMemory(profile),
   };
 }
 
