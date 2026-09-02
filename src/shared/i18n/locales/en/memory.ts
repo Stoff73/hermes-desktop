@@ -73,6 +73,11 @@ export default {
   vaultMissing: "folder not found",
   vaultChoose: "Choose folder…",
   vaultClear: "Unlink",
+  overviewSubtitle: "What each of your agents remembers.",
+  agentUnavailable: "Memory could not be read",
+  activeAgent: "Active",
+  sessionsCount: "{{count}} sessions",
+  openAgentMemory: "Open agent settings",
   providers: {
     honcho:
       "AI-native cross-session user modeling with dialectic Q&A and semantic search",

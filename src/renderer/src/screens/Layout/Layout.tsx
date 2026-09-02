@@ -25,6 +25,7 @@ import ProfileSwitcher from "./ProfileSwitcher";
 import SidebarRecentSessions from "./SidebarRecentSessions";
 import Skills from "../Skills/Skills";
 import Memory from "../Memory/Memory";
+import { useProfileModal } from "../../components/profile/ProfileModalContext";
 import Tools from "../Tools/Tools";
 import Gateway from "../Gateway/Gateway";
 import Office from "../Office/Office";
@@ -98,6 +99,7 @@ function Layout({
   onDismissVerifyWarning,
 }: LayoutProps = {}): React.JSX.Element {
   const { t } = useI18n();
+  const { openProfile } = useProfileModal();
   const { openSettings } = useSettingsModal();
   const [view, setView] = useState<View>("chat");
   // Multiple conversations coexist (background sessions + multi-agent). Each is
@@ -962,7 +964,11 @@ function Layout({
               {remoteMode ? (
                 <RemoteNotice feature="Memory" />
               ) : (
-                <Memory profile={activeProfile} />
+                <Memory
+                  onOpenAgent={(id) =>
+                    openProfile(id, { initialSection: "agentMemory" })
+                  }
+                />
               )}
             </div>
           )}

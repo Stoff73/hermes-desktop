@@ -54,7 +54,7 @@ This plan is written for an agent (Opus 5) executing inline in one session. Foll
 | 6 | Cross-agent memory summary reader and IPC | done | b92939e |
 | 7 | Systems inventory, vault pane, capacity tone, styles | done | bd6e660 |
 | 8 | Conflict-aware editors | done | 29292db |
-| 9 | Agent Settings: Memory tab and naming | done | 62bc6d2 |
+| 9 | Agent Settings: Memory tab and naming | done | 0a51d38 |
 | 10 | Memory screen becomes the cross-agent overview | in progress | |
 | 11 | Agent Settings: model and provider in the Profile tab | not started | |
 | 12 | Documentation and full verification | not started | |
@@ -3428,7 +3428,7 @@ git commit -m "feat(agent-settings): Memory tab shows all five systems; modal na
 - Consumes: `window.hermesAPI.readAllAgentsMemory()` and `AgentMemorySummary` (Task 6), `CapacityBar` with `tone` (Task 7), `relativeTime` exported from `MemorySystems.tsx` (Task 7), `useProfileModal().openProfile(name, { initialSection })` from `components/profile/ProfileModalContext.ts` (exists; `Layout` is rendered inside `ProfileModalProvider` — `ProfileSwitcher`, which Layout renders, already calls the hook).
 - Produces: `<Memory onOpenAgent={(profileId: string) => void} />`. The old `profile` prop is gone.
 
-- [ ] **Step 1: Add the strings**
+- [x] **Step 1: Add the strings**
 
 In `src/shared/i18n/locales/en/memory.ts`, add before `providers: {`:
 
@@ -3440,7 +3440,7 @@ In `src/shared/i18n/locales/en/memory.ts`, add before `providers: {`:
   openAgentMemory: "Open agent settings",
 ```
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 ```tsx
 // src/renderer/src/screens/Memory/Memory.test.tsx
@@ -3542,12 +3542,12 @@ describe("Memory overview", () => {
 });
 ```
 
-- [ ] **Step 3: Run it to verify it fails**
+- [x] **Step 3: Run it to verify it fails**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/Memory.test.tsx`
 Expected: FAIL — the component still calls `readMemory`, `getConfig` and `discoverMemoryProviders`, which the mock does not provide.
 
-- [ ] **Step 4: Rewrite `Memory.tsx`**
+- [x] **Step 4: Rewrite `Memory.tsx`**
 
 Replace the whole of `src/renderer/src/screens/Memory/Memory.tsx` with:
 
@@ -3690,7 +3690,7 @@ export default Memory;
 
 Delete `src/renderer/src/screens/Memory/MemoryTabs.tsx` (`git rm`) and remove the now-unused `export type MemoryTab = ...` line from `types.ts`.
 
-- [ ] **Step 5: Wire the caller**
+- [x] **Step 5: Wire the caller**
 
 In `src/renderer/src/screens/Layout/Layout.tsx`, add the import beside the other component imports:
 
@@ -3714,7 +3714,7 @@ If `Layout` already destructures `openProfile` somewhere, reuse it instead of ad
                 />
 ```
 
-- [ ] **Step 6: Style the overview rows**
+- [x] **Step 6: Style the overview rows**
 
 Append to `src/renderer/src/assets/main.css` after the inventory rules from Task 7:
 
@@ -3800,12 +3800,12 @@ Append to `src/renderer/src/assets/main.css` after the inventory rules from Task
 }
 ```
 
-- [ ] **Step 7: Run the Memory tests and typecheck**
+- [x] **Step 7: Run the Memory tests and typecheck**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/ && npm run typecheck:web`
 Expected: PASS; typecheck clean. Typecheck catches `Layout.tsx` if the prop change was missed, and `types.ts` if `MemoryTab` is still imported anywhere.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/renderer/src/screens/Memory/ src/renderer/src/screens/Layout/Layout.tsx src/shared/i18n/locales/en/memory.ts src/renderer/src/assets/main.css docs/superpowers/plans/2026-09-02-memory-per-agent.md

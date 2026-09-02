@@ -38,7 +38,6 @@ export interface MemoryProviderInfo {
   envVars: string[];
 }
 
-export type MemoryTab = "entries" | "profile" | "providers" | "soul";
 
 /** Mirrors `AgentMemorySummary` in src/main/agents-memory.ts. */
 export interface AgentMemorySummary {
