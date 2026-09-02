@@ -205,15 +205,25 @@ this case exactly: "a patch tool, a shell append, a manual edit, or a concurrent
 session". The `add` action deliberately skips the drift check because appending
 cannot clobber. Both `MEMORY.md.lock` and `USER.md.lock` exist on disk today.
 
-**The gap is that the desktop never takes that lock.** `safeWriteFile` is atomic
-(temp + rename, so never a torn file) but does not touch `.lock`, so a desktop
-write can interleave with the agent's read-modify-write cycle and be lost when
-the agent flushes its stale view.
+**The gap is that the desktop never takes that lock**, and it cannot. Node 22
+exposes no `flock` binding (`fs.flock` and `fs.flockSync` are both `undefined`),
+and the only lockfile library in the tree — `proper-lockfile`, transitive via
+`electron-builder` — locks with `mkdir`, which does not interoperate with an
+fcntl advisory lock and would try to create `MEMORY.md.lock` as a directory
+while the agent holds it as a regular file. True interop would require a native
+addon rebuilt for Electron on three platforms.
 
-The fix is for the desktop's memory writes to acquire the same lock around their
-read-modify-write, matching the agent's protocol. Every writer in `memory.ts`
-(`addMemoryEntry`, `updateMemoryEntry`, `removeMemoryEntry`, `writeUserProfile`,
-`writeMemoryRaw`) goes through it.
+The desktop therefore uses **optimistic concurrency** instead. Every writer in
+`memory.ts` reads the file, computes the new content, then immediately before
+the atomic rename re-reads and confirms the on-disk bytes are still exactly what
+it read. On a mismatch it re-reads and retries once; if it still mismatches, the
+write fails with a conflict the UI surfaces — it never overwrites. This turns a
+silent-loss window into a reported conflict without a native dependency.
+
+The residual window is small in practice. The agent re-reads from disk under its
+own lock immediately before every mutation, so a desktop write that lands
+outside that microsecond-scale interval is picked up by the agent's next reload
+rather than lost.
 
 Stopping and restarting the agent on save is explicitly rejected. Memory is
 injected as a **frozen snapshot at session start** — writes "appear in the
@@ -257,9 +267,9 @@ Provider reachability is best-effort. When it cannot be determined without a
 network call it stays `null`, and the row shows the configured provider without
 a health claim rather than guessing.
 
-Lock acquisition has a bounded timeout. If the lock cannot be taken the write
-fails with a message saying the agent is mid-write and to retry — it must never
-fall back to an unlocked write, which is the data loss the lock exists to
+A write that loses the compare-and-swap after one retry fails with a message
+saying the agent changed the file and the view has reloaded. It must never fall
+back to an unconditional overwrite, which is the data loss the check exists to
 prevent.
 
 ## Testing
@@ -276,8 +286,9 @@ Unit tests follow the existing `src/main/*.test.ts` pattern of pointing
 - `getActiveMemoryProvider` returns `null` for a config.yaml carrying only
   `model.provider`, and the correct value when `memory.provider` is set. This
   test fails against today's implementation.
-- A memory write takes `<file>.lock` and releases it on both success and throw;
-  a write that cannot acquire the lock fails rather than writing unlocked.
+- A memory write whose file changed between read and rename fails with a
+  conflict rather than overwriting, and reports the conflict to the caller.
+- A memory write whose file is unchanged succeeds and preserves prior entries.
 - `readAllAgentsMemory` returns one entry per profile and survives a profile
   whose stores are unreadable.
 
@@ -294,7 +305,8 @@ shape, or it will keep passing while the component it guards diverges.
 There is no `lat.md` file for memory. P1 adds `lat.md/memory.md` covering the
 four systems, the editability boundary, the two surfaces and their split of
 responsibility, per-agent reading, why the active-profile connection cache is
-bypassed, and the locking protocol shared with the agent. `lat check` must pass.
+bypassed, and the optimistic-concurrency protocol and why it is not an fcntl
+lock. `lat check` must pass.
 
 ## Out of scope: P2
 
