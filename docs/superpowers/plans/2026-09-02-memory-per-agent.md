@@ -47,8 +47,8 @@ This plan is written for an agent (Opus 5) executing inline in one session. Foll
 | --- | --- | --- | --- |
 | 0 | Branch and baseline | done | (no code) |
 | 1 | Compare-and-swap writes with an expected-content check | done | b04741d |
-| 2 | Route every memory writer through the check | in progress | |
-| 3 | Fix `getActiveMemoryProvider` reading the LLM provider | not started | |
+| 2 | Route every memory writer through the check | done | 75c32bc |
+| 3 | Fix `getActiveMemoryProvider` reading the LLM provider | in progress | |
 | 4 | Per-profile session reader | not started | |
 | 5 | Five-system `MemoryInfo` contract and its consumers | not started | |
 | 6 | Cross-agent memory summary reader and IPC | not started | |
@@ -819,7 +819,7 @@ In `src/preload/index.d.ts`, replace the matching four declarations with:
 Run: `npm run typecheck && npx vitest run src/main/memory-writers.test.ts src/main/agent-sync.test.ts`
 Expected: typecheck clean (`MemoryEntries.tsx` still compiles because it ignores `removeMemoryEntry`'s result; Task 8 fixes that). Tests PASS. If `agent-sync.test.ts` fails on `writeMemoryRaw`'s return shape, its mock at `src/main/agent-sync.test.ts:90` returns the old shape — update the mock to return `{ success: true }`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/main/memory.ts src/main/memory-writers.test.ts src/main/ssh-remote.ts src/main/ipc/register.ts src/preload/index.ts src/preload/index.d.ts src/main/agent-sync.test.ts docs/superpowers/plans/2026-09-02-memory-per-agent.md
@@ -840,7 +840,7 @@ git commit -m "feat(memory): route all memory writes through the conflict check"
 - Consumes: `getYamlPath(content: string, dottedKey: string): string | null` from `./yaml-path` (returns `""` for `provider: ""`, `null` when the key is absent).
 - Produces: `getActiveMemoryProvider(profile?: string): string` — unchanged signature, correct value. Task 5 depends on it. Side effect: `discoverMemoryProviders` derives each provider's `active` flag from this, so the Active badge on provider cards starts working.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/main/active-memory-provider.test.ts
@@ -890,12 +890,12 @@ describe("getActiveMemoryProvider", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/main/active-memory-provider.test.ts`
 Expected: FAIL — the first test gets `"xai"`, expected `""`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `src/main/installer.ts`, add `import { getYamlPath } from "./yaml-path";` next to the other local imports (around line 19-23) if absent, then replace the body of `getActiveMemoryProvider`:
 
@@ -919,12 +919,12 @@ export function getActiveMemoryProvider(profile?: string): string {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/main/active-memory-provider.test.ts && npm run typecheck:node`
 Expected: PASS, 4 tests; typecheck clean.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/main/installer.ts src/main/active-memory-provider.test.ts docs/superpowers/plans/2026-09-02-memory-per-agent.md

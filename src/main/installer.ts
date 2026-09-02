@@ -21,6 +21,7 @@ import { getActiveProfileNameSync, profileHome, stripAnsi } from "./utils";
 import { setupAskpass, AskpassHandle } from "./askpass";
 import { precacheSudoCredentials } from "./sudoCreds";
 import { HIDDEN_SUBPROCESS_OPTIONS } from "./process-options";
+import { getYamlPath } from "./yaml-path";
 
 const IS_WINDOWS = process.platform === "win32";
 
@@ -1421,15 +1422,18 @@ export function discoverMemoryProviders(
 }
 
 /**
- * Read the active memory provider from config.yaml.
+ * The memory provider from `memory.provider` in the profile's config.yaml.
+ *
+ * Reads the dotted path rather than scanning for any `provider:` line — the old
+ * regex matched an unrelated `provider:` elsewhere in the file and reported the
+ * *model* provider ("xai") as the memory provider on real configs.
  */
 export function getActiveMemoryProvider(profile?: string): string {
   try {
     const configPath = join(profileHome(profile), "config.yaml");
     if (!existsSync(configPath)) return "";
     const content = readFileSync(configPath, "utf-8");
-    const match = content.match(/^\s*provider:\s*["']?(\w+)["']?\s*$/m);
-    return match?.[1] || "";
+    return (getYamlPath(content, "memory.provider") ?? "").trim();
   } catch {
     return "";
   }
