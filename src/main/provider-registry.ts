@@ -9,8 +9,17 @@
  * built-in provider entry that doesn't carry a baseUrl of its own.
  *
  * Only providers whose `/v1/chat/completions` endpoint we trust are
- * listed; anything else (`custom`, `auto`, OAuth-only providers,
- * user-defined entries) falls back to caller-supplied baseUrl.
+ * listed; anything else (`custom`, `auto`, user-defined entries) falls
+ * back to caller-supplied baseUrl.
+ *
+ * `openai-codex` is the one OAuth-only entry. It is here not because its
+ * endpoint is chat-completions — it is not — but because it is the single
+ * canonical URL for that provider, and without it every caller that passes
+ * an empty baseUrl (the Setup tile, and the model picker for any provider
+ * but `custom`/`ollama-cloud`) left the *previous* provider's base_url in
+ * place: pick Codex after Anthropic and config.yaml said `openai-codex`
+ * pointed at `api.anthropic.com`. Do not read this table as a promise about
+ * transport.
  */
 export const PROVIDER_BASE_URLS: Record<string, string> = {
   openai: "https://api.openai.com/v1",
@@ -36,6 +45,7 @@ export const PROVIDER_BASE_URLS: Record<string, string> = {
   xiaomi: "https://api.xiaomimimo.com/v1",
   zai: "https://api.z.ai/api/paas/v4",
   anthropic: "https://api.anthropic.com/v1",
+  "openai-codex": "https://chatgpt.com/backend-api/codex",
   lmstudio: "http://localhost:1234/v1",
   atomicchat: "http://localhost:1337/v1",
   ollama: "http://localhost:11434/v1",

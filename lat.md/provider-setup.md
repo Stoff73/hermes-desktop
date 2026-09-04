@@ -20,6 +20,12 @@ DashScope API-key traffic uses the agent's native `alibaba` provider. The agent 
 
 DashScope users choose between the mainland China and international endpoints during first-run setup ([[src/renderer/src/screens/Setup/Setup.tsx]]). Both choices keep `provider: alibaba`; only `base_url` changes. The **Setup picker** defaults to mainland China (`DEFAULT_DASHSCOPE_BASE_URL`) and always writes `base_url` explicitly, but the **canonical registry** ([[src/main/provider-registry.ts]] `PROVIDER_BASE_URLS`) stays on the international endpoint because it mirrors the agent's own default and is what `setModelConfig` fills into an empty `base_url` — a CN value there would silently repoint existing international users. The Providers tab has no endpoint field anymore (the active model is picked from configured providers), so `confirmModelPick` preserves the current `base_url` when re-picking an `alibaba` model — dropping it to empty would let the canonical fill flip a mainland user to the intl endpoint.
 
+### Codex is in the canonical registry despite being OAuth-only
+
+`openai-codex` carries `https://chatgpt.com/backend-api/codex` in `PROVIDER_BASE_URLS` even though that endpoint is not OpenAI-compatible.
+
+The table's other entries are there because their `/v1/chat/completions` is trusted; this one is there because `setModelConfig` fills an empty `base_url` from it, and every caller that selects Codex passes empty: the Setup tile has `baseUrl: ""`, and `effectiveOverrideBaseUrl` in [[src/renderer/src/screens/Chat/hooks/useModelConfig.ts]] returns `""` for every provider but `custom` and `ollama-cloud`. With no canonical entry the *previous* provider's URL survived, so picking Codex after Anthropic wrote `provider: openai-codex` pointing at `api.anthropic.com`. The entry says nothing about transport.
+
 ## OpenAI-compatible endpoints route through Local
 
 Endpoints the agent does not natively support (Groq, DeepSeek, Together, Fireworks, Cerebras, AtlasCloud, Mistral, AIML, …) are offered as `LOCAL_PRESETS` chips under the `local` card, not as top-level cards.

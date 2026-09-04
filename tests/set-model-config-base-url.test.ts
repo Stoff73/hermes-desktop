@@ -113,6 +113,37 @@ describe("setModelConfig — base_url substitution", () => {
     expect(mc.baseUrl).toBe("https://api.deepseek.com/v1");
   });
 
+  it("overwrites a stale base_url when switching TO OAuth Codex — the same bug in reverse", async () => {
+    const configFile = join(TEST_DIR, "config.yaml");
+
+    // Step 1 — user is on Anthropic.
+    writeFileSync(
+      configFile,
+      [
+        "model:",
+        '  provider: "anthropic"',
+        '  default: "claude-sonnet-4-20250514"',
+        '  base_url: "https://api.anthropic.com/v1"',
+        "",
+      ].join("\n"),
+      "utf-8",
+    );
+
+    const { setModelConfig, getModelConfig } =
+      await importConfigWithHome(TEST_DIR);
+
+    // Step 2 — user picks Codex, from the Setup tile or the model picker.
+    // Both pass "" because neither carries a baseUrl for this provider.
+    setModelConfig("openai-codex", "gpt-5-codex", "");
+
+    const mc = getModelConfig();
+    expect(mc.provider).toBe("openai-codex");
+    // Critical: Anthropic's URL is gone. Codex was the one built-in provider
+    // with no canonical entry, so the stale URL used to survive and chat sent
+    // Codex requests to api.anthropic.com.
+    expect(mc.baseUrl).toBe("https://chatgpt.com/backend-api/codex");
+  });
+
   it("leaves base_url unset for `custom` providers with no explicit baseUrl", async () => {
     const configFile = join(TEST_DIR, "config.yaml");
     const { setModelConfig, getModelConfig } =
