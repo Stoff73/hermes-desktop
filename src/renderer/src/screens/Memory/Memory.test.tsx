@@ -30,6 +30,7 @@ const agents = [
     provider: null,
     vaultLinked: true,
     available: true,
+    status: { state: "running" as const, issue: null },
   },
   {
     id: "myrtle",
@@ -45,6 +46,7 @@ const agents = [
     provider: null,
     vaultLinked: false,
     available: false,
+    status: { state: "stopped" as const, issue: "port 8080 in use" },
   },
 ];
 
@@ -66,6 +68,24 @@ describe("Memory overview", () => {
     expect(row.textContent).toContain("memory.providerBuiltIn");
     expect(row.textContent).toContain("memory.vaultLinked");
     expect(row.textContent).toContain("memory.activeAgent");
+  });
+
+  it("shows a run-state dot per agent and the reason a stopped one is down", async () => {
+    render(<Memory />);
+    await waitFor(() => expect(screen.getByText("Hermes One")).toBeTruthy());
+    expect(screen.getByTestId("memory-agent-dot-default").className).toContain(
+      "is-running",
+    );
+    expect(screen.getByTestId("memory-agent-dot-myrtle").className).toContain(
+      "is-stopped",
+    );
+    // A green agent gets no reason line; a red one names the issue.
+    expect(
+      screen.getByTestId("memory-agent-default").textContent,
+    ).not.toContain("memory.runIssue");
+    expect(screen.getByTestId("memory-agent-myrtle").textContent).toContain(
+      "memory.runIssue:port 8080 in use",
+    );
   });
 
   it("marks an unreadable agent without blanking the list", async () => {

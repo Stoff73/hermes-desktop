@@ -26,6 +26,7 @@ import { AppModal, AppModalTitle } from "../modal/AppModal";
 import ProfileWalletPane from "./ProfileWalletPane";
 import ProfileSyncPane from "./ProfileSyncPane";
 import ProfileModelPicker from "./ProfileModelPicker";
+import ProfileWorkFolder from "./ProfileWorkFolder";
 import { OrbLoader } from "../OrbLoader";
 import type { ProfileSection } from "./ProfileModalContext";
 
@@ -462,6 +463,8 @@ export default function ProfileModal({
 
                 <ProfileModelPicker profile={profile.id} />
 
+                <ProfileWorkFolder profile={profile.id} />
+
                 <div className="profile-modal-section">
                   <span className="profile-modal-label">
                     {t("agents.color")}
@@ -508,6 +511,7 @@ export default function ProfileModal({
                   <MemorySystems
                     data={memoryData}
                     profile={profile.id}
+                    agentName={profile.name}
                     providers={memoryProviders}
                     onRefresh={loadMemoryData}
                   />

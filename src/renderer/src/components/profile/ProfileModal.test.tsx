@@ -39,6 +39,10 @@ vi.mock("./ProfileModelPicker", () => ({
   default: (): React.JSX.Element => <div data-testid="model-picker" />,
 }));
 
+vi.mock("./ProfileWorkFolder", () => ({
+  default: () => <div data-testid="work-folder" />,
+}));
+
 vi.mock("./ProfileWalletPane", () => ({
   default: (): React.JSX.Element => <div data-testid="wallet" />,
 }));

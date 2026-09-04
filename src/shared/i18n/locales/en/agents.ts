@@ -61,6 +61,12 @@ export default {
     "This agent has no {{key}} in its .env. Paste the key to use this provider.",
   modelKeyOAuthHint:
     "For providers you sign in to (OAuth), connect from Providers with this agent active.",
+  workFolderLabel: "Working folder",
+  workFolderHint:
+    "The folder this agent's terminal and file tools start in. Saved to this agent's own config.",
+  workFolderDefault: "Default (where Hermes runs)",
+  workFolderChoose: "Choose folder…",
+  workFolderReset: "Reset to default",
   sectionWallet: "Wallet",
   sectionSync: "Sync",
   sectionAdvanced: "Advanced",

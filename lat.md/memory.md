@@ -18,6 +18,8 @@ Agent Memory and User Profile are bounded markdown files both sides edit; Sessio
 
 [[src/main/memory.ts#readMemory]] assembles all five for one profile; every system reads independently so one failure never blanks the others. Persona (`SOUL.md`) is a context file, not a memory system, and keeps its own tab.
 
+The inventory renders four cards, not five: `provider` and `vault` are both external stores you point the agent at but cannot read from here, so they share one **External memory providers** card. The card's metric names the active provider and the linked vault folder; its detail stacks the provider grid above the vault pane.
+
 ## Editability boundary
 
 The inventory badges each row Editable, Configurable or Read-only, because a row whose detail hosts an Activate button cannot honestly be called read-only.
@@ -30,15 +32,21 @@ Agent Settings writes; the Memory screen reads. Keeping exactly one writing surf
 
 ### Agent Settings writes
 
-The Memory tab of the profile modal mounts the inventory for that agent and is the only place memory, the provider or the vault path are changed.
+The Memory tab of the profile modal mounts the inventory for that agent and is the only place memory, the provider or the vault path are changed. Every card starts collapsed, so no one system reads as the tab's subject.
 
 See [[agent-settings]]. The modal fetches `readMemory` and `discoverMemoryProviders` together, because an empty provider list makes the provider pane report that no providers exist.
 
 ### The overview reads
 
-The Memory screen lists every agent with fill levels, session count, last activity, provider and vault state, and opens Agent Settings at the Memory tab on selection.
+The Memory screen lists every agent with a run-state dot, fill levels, session count, last activity, provider and vault state, and opens Agent Settings at the Memory tab on selection.
 
 [[src/main/agents-memory.ts#readAllAgentsMemory]] builds one summary per profile and degrades an unreadable agent to an unavailable row. The IPC branches to the SSH readers so a remote connection lists remote agents; the screen is hidden only in HTTP remote mode.
+
+## Run state
+
+Each summary carries whether that agent's gateway is up, so the overview can show a green or red dot and, when red, the reason.
+
+[[src/main/agent-status.ts#readAgentRunStatus]] reads the profile's own `gateway_state.json`. The file outlives the process it describes, so a recorded `running` is believed only when its pid is still alive — otherwise a crashed agent stays green forever. A stopped agent carries the gateway's `exit_reason` verbatim; an unreadable file reports `unknown` rather than guessing, and so does every agent over SSH, which is not inspected for liveness.
 
 ## Reading another profile
 
@@ -78,7 +86,7 @@ The active memory provider is read from the `memory.provider` path, not from any
 
 The Obsidian vault is a folder the agent's bundled note-taking skill uses, located by `OBSIDIAN_VAULT_PATH` in the agent's `.env`; the desktop sets the path and nothing else.
 
-[[src/renderer/src/screens/Memory/MemoryVault.tsx#MemoryVault]] writes it through the existing `setEnv`, using the native folder dialog, and unlinks through [[src/main/config.ts#removeEnvValue]], which deletes the line rather than leaving a blank `KEY=` for the skill to misread. Because the variable is profile-scoped, agents can use different vaults. A path whose folder is missing is a warning, not an error.
+The vault pane sits inside the External memory providers card, under its own heading. [[src/renderer/src/screens/Memory/MemoryVault.tsx#MemoryVault]] writes it through the existing `setEnv`, using the native folder dialog, and unlinks through [[src/main/config.ts#removeEnvValue]], which deletes the line rather than leaving a blank `KEY=` for the skill to misread. Because the variable is profile-scoped, agents can use different vaults. A path whose folder is missing is a warning, not an error.
 
 ## Slash command
 
@@ -133,6 +141,10 @@ Saving an edit sends the entry's original text; a conflict reloads, closes the e
 ### Profile editor keeps the draft
 
 Saving sends the loaded content as the expectation; on conflict the draft survives and the view reloads; fresh content resyncs the textarea when nothing is being edited.
+
+### Agent run status
+
+A live pid reads as running; a `running` record whose process is gone reads as stopped, as does an agent that never started; the gateway's exit reason is passed through, and an unreadable state file reports unknown.
 
 ### Overview rows
 

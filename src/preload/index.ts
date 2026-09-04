@@ -1070,6 +1070,10 @@ const hermesAPI = {
       provider: string | null;
       vaultLinked: boolean;
       available: boolean;
+      status: {
+        state: "running" | "stopped" | "unknown";
+        issue: string | null;
+      };
     }>
   > => ipcRenderer.invoke("read-all-agents-memory"),
 

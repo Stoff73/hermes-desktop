@@ -50,11 +50,12 @@ function renderSystems(d: MemoryData = data()): void {
 
 // @lat: [[memory#Memory#Tests#Inventory rendering]]
 describe("MemorySystems", () => {
-  it("lists all five systems", () => {
+  it("lists the four cards, the vault folded into external memory", () => {
     renderSystems();
-    for (const key of ["memory", "user", "sessions", "provider", "vault"]) {
+    for (const key of ["memory", "user", "sessions", "provider"]) {
       expect(screen.getByTestId(`memory-system-${key}`)).toBeTruthy();
     }
+    expect(screen.queryByTestId("memory-system-vault")).toBeNull();
   });
 
   it("badges each system by what you can actually do to it", () => {
@@ -68,7 +69,6 @@ describe("MemorySystems", () => {
     // You choose and configure the backend or folder but cannot read or write
     // its store. "Read-only" beside an Activate button would be a new lie.
     expect(text("provider")).toContain("memory.configurable");
-    expect(text("vault")).toContain("memory.configurable");
   });
 
   it("captions a near-full store as consolidating and does not paint it red", () => {
@@ -88,7 +88,7 @@ describe("MemorySystems", () => {
     ).toBeNull();
   });
 
-  it("shows sessions on Session Search, never on User Profile", () => {
+  it("shows sessions on session memory, never on the user profile", () => {
     renderSystems();
     expect(screen.getByTestId("memory-system-sessions").textContent).toContain(
       "memory.sessionsAndMessages:22,1278",
@@ -134,25 +134,34 @@ describe("MemorySystems", () => {
     expect(row.textContent).toContain("memory.providerNotInstalled");
   });
 
-  it("shows the vault folder name, or Not linked, and warns when the folder is missing", () => {
+  it("shows the vault folder name, or not linked, on the external memory card", () => {
     renderSystems();
-    expect(screen.getByTestId("memory-system-vault").textContent).toContain(
+    expect(screen.getByTestId("memory-system-provider").textContent).toContain(
       "memory.vaultNotLinked",
     );
     renderSystems(
       data({ vault: { path: "/Users/me/My Vault", exists: false } }),
     );
-    const row = screen.getAllByTestId("memory-system-vault")[1];
+    const row = screen.getAllByTestId("memory-system-provider")[1];
     expect(row.textContent).toContain("My Vault");
     expect(row.textContent).toContain("memory.vaultMissing");
   });
 
-  it("opens Agent Memory by default and toggles details on click", () => {
+  it("names the user profile after the agent whose memory it is", () => {
+    renderSystems();
+    expect(screen.getByTestId("memory-system-user").textContent).toContain(
+      "memory.userProfileOf:p",
+    );
+  });
+
+  it("starts with every card collapsed and opens one at a time", () => {
     renderSystems();
     const memory = screen.getByTestId("memory-system-memory");
-    expect(memory.querySelector(".memory-system-detail")).not.toBeNull();
     const sessions = screen.getByTestId("memory-system-sessions");
+    expect(memory.querySelector(".memory-system-detail")).toBeNull();
     expect(sessions.querySelector(".memory-system-detail")).toBeNull();
+    fireEvent.click(memory.querySelector(".memory-system-head")!);
+    expect(memory.querySelector(".memory-system-detail")).not.toBeNull();
     fireEvent.click(sessions.querySelector(".memory-system-head")!);
     expect(sessions.querySelector(".memory-system-detail")).not.toBeNull();
     expect(memory.querySelector(".memory-system-detail")).toBeNull();

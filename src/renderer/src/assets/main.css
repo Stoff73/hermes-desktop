@@ -2218,7 +2218,7 @@ body:has(.shell-vibrant),
   flex-shrink: 0;
 }
 .status-dot.online {
-  background: var(--success, #3fb950);
+  background: var(--success);
   box-shadow: 0 0 0 3px
     color-mix(in srgb, var(--success, #3fb950) 22%, transparent);
 }
@@ -10665,10 +10665,44 @@ body:has(.shell-vibrant),
   align-items: flex-start;
 }
 
+/* The chat's picker opens upward because it sits at the bottom of the window.
+   In the profile modal the trigger is near the top, so upward is clipped by the
+   modal body — flip it down and cap it to the space that is actually there. */
+.profile-model .chat-model-dropdown {
+  bottom: auto;
+  top: 100%;
+  margin-bottom: 0;
+  margin-top: 8px;
+  max-height: min(440px, 45vh);
+  transform-origin: top left;
+}
+
 .profile-model-hint {
   font-size: 12px;
   color: var(--text-muted);
   margin: 0;
+}
+
+.profile-work-folder-path {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.profile-work-folder-path code {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.profile-work-folder-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .profile-model-key {
@@ -14714,6 +14748,16 @@ body:has(.shell-vibrant),
   display: flex;
   flex-direction: column;
   gap: 10px;
+  /* Shares a card with the provider grid above it, so it needs its own rule. */
+  border-top: 1px solid var(--border);
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.memory-vault-title {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0;
 }
 
 .memory-vault-hint {
@@ -14785,6 +14829,31 @@ body:has(.shell-vibrant),
 .memory-agent-name {
   font-size: 14px;
   font-weight: 600;
+}
+
+.memory-agent-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--text-muted);
+}
+
+.memory-agent-dot.is-running {
+  background: var(--success);
+}
+
+.memory-agent-dot.is-stopped {
+  background: var(--error);
+}
+
+.memory-agent-issue {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .memory-agent-active {

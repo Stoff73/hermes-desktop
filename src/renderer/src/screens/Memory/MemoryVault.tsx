@@ -54,6 +54,7 @@ export function MemoryVault({
 
   return (
     <div className="memory-vault">
+      <h4 className="memory-vault-title">{t("memory.vaultTitle")}</h4>
       <p className="memory-vault-hint">{t("memory.vaultHint")}</p>
       {error && <div className="memory-error">{error}</div>}
       <div className="memory-vault-path" data-testid="memory-vault-path">

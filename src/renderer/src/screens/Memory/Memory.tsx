@@ -79,12 +79,25 @@ function Memory({ onOpenAgent }: MemoryProps): React.JSX.Element {
                 size={28}
               />
               <span className="memory-agent-name">{a.name}</span>
+              <span
+                className={`memory-agent-dot is-${a.status.state}`}
+                data-testid={`memory-agent-dot-${a.id}`}
+                title={t(`memory.runState.${a.status.state}`)}
+                aria-label={t(`memory.runState.${a.status.state}`)}
+              />
               {a.isActive && (
                 <span className="memory-agent-active">
                   {t("memory.activeAgent")}
                 </span>
               )}
             </div>
+            {a.status.state === "stopped" && (
+              <div className="memory-agent-issue">
+                {a.status.issue
+                  ? t("memory.runIssue", { reason: a.status.issue })
+                  : t("memory.runState.stopped")}
+              </div>
+            )}
             {a.available ? (
               <div className="memory-agent-metrics">
                 <div className="memory-agent-bars">

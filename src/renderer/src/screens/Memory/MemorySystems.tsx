@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Database, User, Search, Cloud, BookOpen } from "lucide-react";
+import { Database, User, Search, Cloud } from "lucide-react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useI18n } from "../../components/useI18n";
 import { CapacityBar } from "./CapacityBar";
@@ -9,7 +9,7 @@ import { MemoryProviders } from "./MemoryProviders";
 import { MemoryVault } from "./MemoryVault";
 import type { MemoryData, MemoryProviderInfo } from "./types";
 
-type SystemKey = "memory" | "user" | "sessions" | "provider" | "vault";
+type SystemKey = "memory" | "user" | "sessions" | "provider";
 
 interface MemorySystemsProps {
   data: MemoryData;
@@ -20,6 +20,8 @@ interface MemorySystemsProps {
    * so the caller must fetch these — deliberately required, not optional.
    */
   providers: MemoryProviderInfo[];
+  /** Display name for the rows that speak about the agent. Falls back to the id. */
+  agentName?: string;
   onRefresh: () => void;
 }
 
@@ -58,10 +60,13 @@ export function MemorySystems({
   data,
   profile,
   providers,
+  agentName,
   onRefresh,
 }: MemorySystemsProps): React.JSX.Element {
   const { t } = useI18n();
-  const [open, setOpen] = useState<SystemKey | null>("memory");
+  const [open, setOpen] = useState<SystemKey | null>(null);
+  // Prefer the display name; the id is a slug and reads badly in a sentence.
+  const who = agentName ?? profile;
 
   const rows: SystemRow[] = [
     {
@@ -92,7 +97,9 @@ export function MemorySystems({
     {
       key: "user",
       Icon: User,
-      label: t("memory.userProfile"),
+      label: who
+        ? t("memory.userProfileOf", { agent: who })
+        : t("memory.userProfile"),
       desc: t("memory.userProfileDesc"),
       badge: t("memory.editable"),
       bounded: true,
@@ -172,36 +179,9 @@ export function MemorySystems({
       Icon: Cloud,
       label: t("memory.providersTitle"),
       desc: t("memory.providerDesc"),
-      // You choose and configure the backend but cannot read or write its
-      // store. "Read-only" beside its own Activate button would be a new lie.
-      badge: t("memory.configurable"),
-      bounded: false,
-      used: 0,
-      limit: 0,
-      metric: (
-        <span className="memory-system-facts">
-          <span>{data.provider.active ?? t("memory.providerBuiltIn")}</span>
-          {data.provider.active && !data.provider.installed && (
-            <span className="memory-system-warn">
-              {t("memory.providerNotInstalled")}
-            </span>
-          )}
-        </span>
-      ),
-      detail: (
-        <MemoryProviders
-          providers={providers}
-          activeProvider={data.provider.active}
-          profile={profile}
-          onRefresh={onRefresh}
-        />
-      ),
-    },
-    {
-      key: "vault",
-      Icon: BookOpen,
-      label: t("memory.vaultTitle"),
-      desc: t("memory.vaultDesc"),
+      // Providers and the Obsidian vault are both external stores you point
+      // the agent at but cannot read or write from here, so they share a card.
+      // "Read-only" beside their own Activate/Choose buttons would be a lie.
       badge: t("memory.configurable"),
       bounded: false,
       used: 0,
@@ -209,24 +189,40 @@ export function MemorySystems({
       metric: (
         <span className="memory-system-facts">
           <span>
+            {data.provider.active ?? t("memory.providerBuiltIn")}
+            {data.provider.active && !data.provider.installed && (
+              <span className="memory-system-warn">
+                {t("memory.providerNotInstalled")}
+              </span>
+            )}
+          </span>
+          <span>
             {data.vault.path
               ? folderName(data.vault.path)
               : t("memory.vaultNotLinked")}
+            {data.vault.path && !data.vault.exists && (
+              <span className="memory-system-warn">
+                {t("memory.vaultMissing")}
+              </span>
+            )}
           </span>
-          {data.vault.path && !data.vault.exists && (
-            <span className="memory-system-warn">
-              {t("memory.vaultMissing")}
-            </span>
-          )}
         </span>
       ),
       detail: (
-        <MemoryVault
-          path={data.vault.path}
-          exists={data.vault.exists}
-          profile={profile}
-          onRefresh={onRefresh}
-        />
+        <>
+          <MemoryProviders
+            providers={providers}
+            activeProvider={data.provider.active}
+            profile={profile}
+            onRefresh={onRefresh}
+          />
+          <MemoryVault
+            path={data.vault.path}
+            exists={data.vault.exists}
+            profile={profile}
+            onRefresh={onRefresh}
+          />
+        </>
       ),
     },
   ];

@@ -785,6 +785,7 @@ interface HermesAPI {
       provider: string | null;
       vaultLinked: boolean;
       available: boolean;
+      status: { state: "running" | "stopped" | "unknown"; issue: string | null };
     }>
   >;
 
