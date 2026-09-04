@@ -57,7 +57,7 @@ This plan is written for an agent (Opus 5) executing inline in one session. Foll
 | 9 | Agent Settings: Memory tab and naming | done | 0a51d38 |
 | 10 | Memory screen becomes the cross-agent overview | done | 7b8f693 |
 | 11 | Agent Settings: model and provider in the Profile tab | done | 09befc4 |
-| 12 | Documentation and full verification | blocked (app check) | 68957d0 |
+| 12 | Documentation and full verification | done (app check 4/6, 2 open) | 68957d0 |
 | 13 | Finish the branch | not started | |
 
 ## File map
@@ -4586,3 +4586,54 @@ visual checks are left for CSJ:
 Everything else in Task 12 is verified: `lat.md check` passes, typecheck is
 clean, and the only failing tests are the recorded baseline plus one known
 load-flake.
+
+#### Results — 2026-09-04, with CSJ at the keyboard
+
+Four of six pass; two were not exercised and stay open.
+
+1. **Pass.** Closing the modal returns to the overview with all three agents
+   listed (`default`, `myrtle`, `web-wizard-agent`) — note there are three
+   profiles, not two.
+2. **Pass.** Selecting an agent opens Agent Settings at the Memory tab with
+   all five systems present. CSJ judged the layout wrong, not broken; see the
+   follow-up round below.
+3. **Pass.** User Profile shows chars only; Session Search shows
+   `9 sessions · 294 messages`.
+4. **Pass.** User Profile at 97% reads "At capacity — the agent consolidates
+   on the next write" in neutral blue.
+5. **Not verified.** CSJ picked a model with Agent Settings open on `default`,
+   the *active* profile, so the write went to `~/.hermes/config.yaml`. The
+   picker works; the **non-active** path is what this check was for and
+   `myrtle/config.yaml` is unchanged. Still open.
+6. **Not run.** The vault pane renders and the dialog opens; no folder was
+   chosen, so `OBSIDIAN_VAULT_PATH` was never written. Still open.
+
+**Side effect worth knowing:** the model pick left `default` on `anthropic`
+with no `ANTHROPIC_API_KEY`, so `checkInstall().hasApiKey` went false and the
+next launch routed to the Setup screen (`App.tsx:74-82`). Not a startup bug —
+`checkInstall` found the install and `startGatewayWithRecovery` still starts
+the gateway on demand. But the Setup screen never says why it appeared, which
+is a real gap: a working install that switches to a keyless provider is
+dropped into onboarding with no explanation and no way back. Not built.
+
+### Follow-up round (2026-09-04) — CSJ's review of the Memory tab
+
+Committed as `9254afb`, after Task 12 and before Task 13.
+
+Eight changes from looking at the real screens: the provider row became
+"External memory providers" with the Obsidian vault folded into it; "User
+Profile" became "<Agent>'s memory of you"; "Session Search" became "Session
+memory"; every card starts collapsed; "Built-in only"/"Not linked" became
+"None connected"/"No vault linked"; the model dropdown no longer opens upward
+into the modal's top edge; the Profile tab gained a working-folder picker for
+the existing `terminal.cwd` key; and the overview cards gained a run-state dot
+backed by a new [[src/main/agent-status.ts]] that disbelieves a stale
+`running` record whose pid is gone.
+
+Verified at `9254afb`: typecheck clean, `lat.md check` passes, the 12 touched
+suites pass (47 tests), and the full run is 1976 passed with 5 failures, all in
+`tests/gateway-restart.test.ts` and `tests/terminal-launcher.test.ts` from the
+recorded baseline.
+
+Left undone deliberately: the 11 non-English locales still carry the old
+wording for the renamed keys, which is the pre-existing locale debt, not new.
