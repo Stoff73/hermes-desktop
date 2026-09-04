@@ -1113,6 +1113,100 @@ export function registerIpcHandlers(context: IpcContext): void {
     return getModelConfig(profile);
   });
 
+  /**
+   * Writes the active model for a profile across local, remote and SSH modes.
+   * Separated from the handler so the handler has one exit point to announce
+   * the change on — see the note there.
+   */
+  async function applySetModelConfig(
+    provider: string,
+    model: string,
+    baseUrl: string,
+    profile?: string,
+  ): Promise<boolean> {
+    const conn = getConnectionConfig();
+    if (conn.mode === "remote") {
+      return withRemoteDashboard(
+        conn,
+        () => remoteSetModelConfig(conn, provider, model, baseUrl),
+        () => {
+          const prev = getModelConfig(profile);
+          // Same library-mirroring as the pure-local path below: carry the
+          // activated model's context-window and api_mode into config.yaml
+          // so this local fallback write doesn't leave a stale transport.
+          const libEntry = resolveLibraryModelEntry(provider, model, baseUrl);
+          setModelConfig(
+            provider,
+            model,
+            baseUrl,
+            profile,
+            libEntry?.contextLength ?? null,
+            libEntry?.apiMode ?? null,
+          );
+          if (
+            isGatewayRunning(profile) &&
+            (prev.provider !== provider ||
+              prev.model !== model ||
+              prev.baseUrl !== baseUrl)
+          ) {
+            restartGateway(profile);
+          }
+          return true;
+        },
+      );
+    }
+    if (conn.mode === "ssh" && conn.ssh) {
+      return withSshDashboardSessions(
+        conn,
+        (config) => remoteSetModelConfig(config, provider, model, baseUrl),
+        async () => {
+          const prev = await sshGetModelConfig(conn.ssh!, profile);
+          await sshSetModelConfig(conn.ssh!, provider, model, baseUrl, profile);
+          if (
+            (await sshGatewayStatus(conn.ssh!)) &&
+            (prev.provider !== provider ||
+              prev.model !== model ||
+              prev.baseUrl !== baseUrl)
+          ) {
+            await sshStopGateway(conn.ssh!);
+            await sshStartGateway(conn.ssh!);
+          }
+          return true;
+        },
+        activeSshProfile(profile),
+      );
+    }
+    const prev = getModelConfig(profile);
+    // Mirror the activated model's context-window override and API-protocol
+    // mode (if any) into config.yaml so the gauge, the agent's
+    // auto-compaction threshold, and the runtime transport all match the
+    // model being activated. Passing `null` when the library entry has none
+    // clears any stale value left by a previously-active model — critical for
+    // `api_mode`, since a leftover `anthropic_messages`/`chat_completions`
+    // would otherwise route the new endpoint over the wrong protocol.
+    const libEntry = resolveLibraryModelEntry(provider, model, baseUrl);
+    setModelConfig(
+      provider,
+      model,
+      baseUrl,
+      profile,
+      libEntry?.contextLength ?? null,
+      libEntry?.apiMode ?? null,
+    );
+
+    // Restart gateway when provider, model, or endpoint changes so it picks up new config
+    if (
+      isGatewayRunning(profile) &&
+      (prev.provider !== provider ||
+        prev.model !== model ||
+        prev.baseUrl !== baseUrl)
+    ) {
+      restartGateway(profile);
+    }
+
+    return true;
+  }
+
   ipcMain.handle(
     "set-model-config",
     async (
@@ -1122,93 +1216,19 @@ export function registerIpcHandlers(context: IpcContext): void {
       baseUrl: string,
       profile?: string,
     ) => {
-      const conn = getConnectionConfig();
-      if (conn.mode === "remote") {
-        return withRemoteDashboard(
-          conn,
-          () => remoteSetModelConfig(conn, provider, model, baseUrl),
-          () => {
-            const prev = getModelConfig(profile);
-            // Same library-mirroring as the pure-local path below: carry the
-            // activated model's context-window and api_mode into config.yaml
-            // so this local fallback write doesn't leave a stale transport.
-            const libEntry = resolveLibraryModelEntry(provider, model, baseUrl);
-            setModelConfig(
-              provider,
-              model,
-              baseUrl,
-              profile,
-              libEntry?.contextLength ?? null,
-              libEntry?.apiMode ?? null,
-            );
-            if (
-              isGatewayRunning(profile) &&
-              (prev.provider !== provider ||
-                prev.model !== model ||
-                prev.baseUrl !== baseUrl)
-            ) {
-              restartGateway(profile);
-            }
-            return true;
-          },
-        );
-      }
-      if (conn.mode === "ssh" && conn.ssh) {
-        return withSshDashboardSessions(
-          conn,
-          (config) => remoteSetModelConfig(config, provider, model, baseUrl),
-          async () => {
-            const prev = await sshGetModelConfig(conn.ssh!, profile);
-            await sshSetModelConfig(
-              conn.ssh!,
-              provider,
-              model,
-              baseUrl,
-              profile,
-            );
-            if (
-              (await sshGatewayStatus(conn.ssh!)) &&
-              (prev.provider !== provider ||
-                prev.model !== model ||
-                prev.baseUrl !== baseUrl)
-            ) {
-              await sshStopGateway(conn.ssh!);
-              await sshStartGateway(conn.ssh!);
-            }
-            return true;
-          },
-          activeSshProfile(profile),
-        );
-      }
-      const prev = getModelConfig(profile);
-      // Mirror the activated model's context-window override and API-protocol
-      // mode (if any) into config.yaml so the gauge, the agent's
-      // auto-compaction threshold, and the runtime transport all match the
-      // model being activated. Passing `null` when the library entry has none
-      // clears any stale value left by a previously-active model — critical for
-      // `api_mode`, since a leftover `anthropic_messages`/`chat_completions`
-      // would otherwise route the new endpoint over the wrong protocol.
-      const libEntry = resolveLibraryModelEntry(provider, model, baseUrl);
-      setModelConfig(
+      const result = await applySetModelConfig(
         provider,
         model,
         baseUrl,
         profile,
-        libEntry?.contextLength ?? null,
-        libEntry?.apiMode ?? null,
       );
-
-      // Restart gateway when provider, model, or endpoint changes so it picks up new config
-      if (
-        isGatewayRunning(profile) &&
-        (prev.provider !== provider ||
-          prev.model !== model ||
-          prev.baseUrl !== baseUrl)
-      ) {
-        restartGateway(profile);
-      }
-
-      return true;
+      // Every screen caching the active model has to re-read it. Without this,
+      // persisting from Agent Settings or Providers left the Chat tab holding
+      // the old value — and with it a stale "No model selected" banner that no
+      // action could clear. The channel is named for the library, but its only
+      // meaning to a listener is "your cached model info is stale".
+      notifyModelLibraryChanged();
+      return result;
     },
   );
 

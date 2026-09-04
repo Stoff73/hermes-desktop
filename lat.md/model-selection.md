@@ -58,7 +58,12 @@ The pre-send readiness check is given the chat picker's session selection, not j
 
 The picker calls `selectModel` with `persist: false` by design, so `config.yaml` is untouched. [[src/main/validation.ts#validateChatReadiness]] read only `getModelConfig`, so a user who picked a model, watched it appear in the composer toolbar, and had an empty `model.default` on disk kept being told "No model selected" with no way to clear it. It now takes the override and checks that wholesale rather than silencing the one code — overriding to a provider whose key is missing still warns, and warns about the right key. Chat re-runs the check when the override changes.
 
+Persisting is announced too. `set-model-config` writes the active model for local, remote and SSH modes, and the handler now has a single exit point that fires `model-library-changed`. Without it, persisting from Agent Settings or Providers left the Chat tab holding its cached model — and with it the same stale banner, which no action could clear. The channel is named for the library, but to a listener it only ever means "your cached model info is stale", which is why the local write path reuses it rather than adding a second event.
+
 ### Session override satisfies readiness
 
 An empty persisted model with a session override reads as ready; the override's own provider is what the key check is run against, so switching to an unconfigured provider still reports its missing key.
 
+### Persisting a model announces it
+
+The `set-model-config` handler fires the change notification on every mode's path, so a persist from one screen refreshes the others.

@@ -127,3 +127,18 @@ describe("Legacy IPC handlers preserved", () => {
     });
   }
 });
+
+// @lat: [[model-selection#Session model override#Readiness follows the session model#Persisting a model announces it]]
+describe("set-model-config announces the change", () => {
+  it("notifies listeners so cached copies of the active model reload", () => {
+    // Persisting from Agent Settings or Providers used to leave the Chat tab
+    // holding the old value, and with it a "No model selected" banner that no
+    // action could clear. A source check, in keeping with this file: the
+    // handler is registered against Electron's ipcMain, not callable here.
+    const handler = indexSrc.slice(
+      indexSrc.indexOf('ipcMain.handle(\n    "set-model-config"'),
+    );
+    const body = handler.slice(0, handler.indexOf("\n  );"));
+    expect(body).toContain("notifyModelLibraryChanged()");
+  });
+});
