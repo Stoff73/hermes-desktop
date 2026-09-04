@@ -58,7 +58,7 @@ This plan is written for an agent (Opus 5) executing inline in one session. Foll
 | 10 | Memory screen becomes the cross-agent overview | done | 7b8f693 |
 | 11 | Agent Settings: model and provider in the Profile tab | done | 09befc4 |
 | 12 | Documentation and full verification | done (app check 4/6, 2 open) | 68957d0 |
-| 13 | Finish the branch | not started | |
+| 13 | Finish the branch | done | https://github.com/Stoff73/hermes-desktop/pull/2 |
 
 ## File map
 
@@ -4466,7 +4466,7 @@ git commit -m "docs: document the five memory systems, write protection, and Age
 
 **Files:** none.
 
-- [ ] **Step 1: Invoke `superpowers:finishing-a-development-branch`**
+- [x] **Step 1: Invoke `superpowers:finishing-a-development-branch`**
 
 Follow it. The expected outcome is a pull request against `main`. Suggested command once the skill has verified the tree:
 
@@ -4494,7 +4494,7 @@ EOF
 )"
 ```
 
-- [ ] **Step 2: Update the Progress table**
+- [x] **Step 2: Update the Progress table**
 
 Set Task 13 to `done` with the PR URL in the Commit column, commit the plan file, and push.
 
@@ -4637,3 +4637,27 @@ recorded baseline.
 
 Left undone deliberately: the 11 non-English locales still carry the old
 wording for the renamed keys, which is the pre-existing locale debt, not new.
+
+### Task 13 (2026-09-04) — pushed and opened as PR #2
+
+https://github.com/Stoff73/hermes-desktop/pull/2, 21 commits against `main`.
+
+The PR body was rewritten rather than used verbatim from this plan: seven
+commits landed after Task 12 covering the Memory tab review round and a chain
+of config bugs (the `openai-codex` base_url, Setup finishing with no model,
+two dead calls to action, the picker opening on All, readiness ignoring the
+session model, and a persisted model notifying nobody). CSJ chose one PR over
+splitting them, since the commits are interleaved on this branch.
+
+Test suite verified against `main` before pushing rather than assumed:
+`tests/gateway-restart.test.ts` (6) and `tests/terminal-launcher.test.ts` (1)
+fail identically on `main`. `AgentMarkdown.test.tsx` failed one isolated run
+while the Electron dev server was up (14.6s vs the usual 5.4s) and then passed
+3/3 — the recorded load-sensitive timeout, not a regression.
+
+App check 5 now passes: Agent Settings wrote `myrtle/config.yaml` with the
+model, provider and correct base_url. Item 6 (vault folder write) remains the
+only unexercised check and is called out unticked in the PR.
+
+Note for whoever merges: local `main` carries one unpushed commit, `8e939c0`
+(the lockfile refresh), so the PR diff includes it.
