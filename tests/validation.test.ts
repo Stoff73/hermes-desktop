@@ -309,4 +309,44 @@ describe("validateChatReadiness", () => {
     expect(r.ok).toBe(false);
     expect(r.expectedEnvKey).toBe("NOUS_API_KEY");
   });
+
+  // @lat: [[model-selection#Session model override#Readiness follows the session model#Session override satisfies readiness]]
+  it("accepts the session model the chat picker set, which persists nothing", async () => {
+    // The picker calls selectModel with persist:false, so config.yaml keeps
+    // whatever was there — an empty default in the case that motivated this.
+    writeConfig(
+      ["model:", "  provider: openai-codex", '  default: ""', ""].join("\n"),
+    );
+    const { validateChatReadiness } = await freshValidation(TEST_DIR);
+
+    expect(validateChatReadiness().code).toBe("NO_ACTIVE_MODEL");
+    expect(
+      validateChatReadiness(undefined, {
+        provider: "openai-codex",
+        model: "gpt-5.6-luna",
+        baseUrl: "",
+      }).ok,
+    ).toBe(true);
+  });
+
+  it("judges the override's own provider, not the persisted one", async () => {
+    // Silencing NO_ACTIVE_MODEL alone would have hidden this: overriding to a
+    // provider whose key is missing must still warn, about the right key.
+    writeConfig(
+      ["model:", "  provider: openai-codex", "  default: gpt-5-codex", ""].join(
+        "\n",
+      ),
+    );
+    writeEnv("");
+    const { validateChatReadiness } = await freshValidation(TEST_DIR);
+
+    expect(validateChatReadiness().ok).toBe(true);
+    const r = validateChatReadiness(undefined, {
+      provider: "nous",
+      model: "hermes-4",
+      baseUrl: "",
+    });
+    expect(r.ok).toBe(false);
+    expect(r.expectedEnvKey).toBe("NOUS_API_KEY");
+  });
 });

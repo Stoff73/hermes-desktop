@@ -75,15 +75,32 @@ const OAUTH_PROVIDERS = new Set([
 // from the dropdown but had nothing set up.
 const NO_KEY_PROVIDERS = new Set(["auto"]);
 
+/** The session-scoped model the chat picker set, when there is one. */
+export interface ReadinessModelOverride {
+  provider: string;
+  model: string;
+  baseUrl: string;
+}
+
 /**
  * Synchronous readiness check against the desktop's own config —
  * no network calls. Fast (single readEnv + getModelConfig).
  *
  * `profile` defaults to the active profile.
+ *
+ * `override` is the chat picker's session selection. That picker persists
+ * nothing (`persist: false`), so checking config.yaml alone reported "No model
+ * selected" at a user who had just picked one and could see it in the toolbar.
+ * Checking the override wholesale rather than only silencing that one code
+ * keeps the rest honest: overriding to a provider whose key is missing still
+ * warns, and warns about the right key.
  */
-export function validateChatReadiness(profile?: string): ChatReadiness {
+export function validateChatReadiness(
+  profile?: string,
+  override?: ReadinessModelOverride,
+): ChatReadiness {
   try {
-    const mc = getModelConfig(profile);
+    const mc = override ?? getModelConfig(profile);
     const provider = (mc.provider || "").trim().toLowerCase();
     const model = (mc.model || "").trim();
     const baseUrl = (mc.baseUrl || "").trim();

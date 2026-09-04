@@ -15,8 +15,8 @@ import { X } from "lucide-react";
 interface ConfigHealthBannerProps {
   /** Active profile (forwarded to the audit IPC). */
   profile?: string;
-  /** Open Settings → Diagnose section. */
-  onOpenDiagnose?: () => void;
+  /** Open Settings at a named section; Diagnose lives inside About. */
+  onOpenDiagnose?: (section?: string) => void;
 }
 
 interface Report {
@@ -209,7 +209,13 @@ export function ConfigHealthBanner({
             <button
               className="config-health-banner-link"
               type="button"
-              onClick={onOpenDiagnose}
+              // Name the section: the Diagnose report has no nav entry of its
+              // own, it renders at the top of About. Calling with no argument
+              // resolved to the default pane, which is Appearance — the link
+              // opened Settings showing nothing about the problem.
+              // (And never `onClick={onOpenDiagnose}`: React would pass the
+              // click event as the section, which resolveSection .trim()s.)
+              onClick={() => onOpenDiagnose("about")}
             >
               {t("diagnose.banner.showDetails")}
             </button>

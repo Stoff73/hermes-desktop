@@ -166,6 +166,7 @@ import { startOfficeStack } from "../office-start";
 import {
   readEnv,
   setEnvValue,
+  removeEnvValue,
   getConfigValue,
   setConfigValue,
   getHermesHome,
@@ -290,6 +291,11 @@ import {
   removeMemoryEntry,
   writeUserProfile,
 } from "../memory";
+import {
+  readAllAgentsMemory,
+  summariseAgentMemory,
+  unavailableAgentMemory,
+} from "../agents-memory";
 import { readSoul, writeSoul, resetSoul } from "../soul";
 import {
   getPlatformToolsets,
@@ -375,6 +381,7 @@ import {
   sshReadEnv,
   sshGetOAuthProviderStatuses,
   sshSetEnvValue,
+  sshRemoveEnvValue,
   sshGetConfigValue,
   sshSetConfigValue,
   sshGetHermesHome,
@@ -975,9 +982,16 @@ export function registerIpcHandlers(context: IpcContext): void {
   // Pre-send chat readiness — answers "if Send is clicked right now,
   // will it work?". Fail-open semantics: any uncertain state returns
   // `ok: true`, so the renderer never false-blocks a Send.
-  ipcMain.handle("validate-chat-readiness", (_event, profile?: string) => {
-    return validateChatReadiness(profile);
-  });
+  ipcMain.handle(
+    "validate-chat-readiness",
+    (
+      _event,
+      profile?: string,
+      override?: { provider: string; model: string; baseUrl: string },
+    ) => {
+      return validateChatReadiness(profile, override);
+    },
+  );
 
   // Config-health audit + per-issue auto-fix. The renderer renders a
   // dismissible banner above the chat input and a full report in the
@@ -1035,6 +1049,19 @@ export function registerIpcHandlers(context: IpcContext): void {
     },
   );
 
+  ipcMain.handle(
+    "remove-env",
+    async (_event, key: string, profile?: string) => {
+      const conn = getConnectionConfig();
+      if (conn.mode === "ssh" && conn.ssh) {
+        await sshRemoveEnvValue(conn.ssh, key, profile);
+        return true;
+      }
+      removeEnvValue(key, profile);
+      return true;
+    },
+  );
+
   ipcMain.handle("get-config", (_event, key: string, profile?: string) => {
     const conn = getConnectionConfig();
     if (conn.mode === "ssh" && conn.ssh)
@@ -1086,6 +1113,100 @@ export function registerIpcHandlers(context: IpcContext): void {
     return getModelConfig(profile);
   });
 
+  /**
+   * Writes the active model for a profile across local, remote and SSH modes.
+   * Separated from the handler so the handler has one exit point to announce
+   * the change on — see the note there.
+   */
+  async function applySetModelConfig(
+    provider: string,
+    model: string,
+    baseUrl: string,
+    profile?: string,
+  ): Promise<boolean> {
+    const conn = getConnectionConfig();
+    if (conn.mode === "remote") {
+      return withRemoteDashboard(
+        conn,
+        () => remoteSetModelConfig(conn, provider, model, baseUrl),
+        () => {
+          const prev = getModelConfig(profile);
+          // Same library-mirroring as the pure-local path below: carry the
+          // activated model's context-window and api_mode into config.yaml
+          // so this local fallback write doesn't leave a stale transport.
+          const libEntry = resolveLibraryModelEntry(provider, model, baseUrl);
+          setModelConfig(
+            provider,
+            model,
+            baseUrl,
+            profile,
+            libEntry?.contextLength ?? null,
+            libEntry?.apiMode ?? null,
+          );
+          if (
+            isGatewayRunning(profile) &&
+            (prev.provider !== provider ||
+              prev.model !== model ||
+              prev.baseUrl !== baseUrl)
+          ) {
+            restartGateway(profile);
+          }
+          return true;
+        },
+      );
+    }
+    if (conn.mode === "ssh" && conn.ssh) {
+      return withSshDashboardSessions(
+        conn,
+        (config) => remoteSetModelConfig(config, provider, model, baseUrl),
+        async () => {
+          const prev = await sshGetModelConfig(conn.ssh!, profile);
+          await sshSetModelConfig(conn.ssh!, provider, model, baseUrl, profile);
+          if (
+            (await sshGatewayStatus(conn.ssh!)) &&
+            (prev.provider !== provider ||
+              prev.model !== model ||
+              prev.baseUrl !== baseUrl)
+          ) {
+            await sshStopGateway(conn.ssh!);
+            await sshStartGateway(conn.ssh!);
+          }
+          return true;
+        },
+        activeSshProfile(profile),
+      );
+    }
+    const prev = getModelConfig(profile);
+    // Mirror the activated model's context-window override and API-protocol
+    // mode (if any) into config.yaml so the gauge, the agent's
+    // auto-compaction threshold, and the runtime transport all match the
+    // model being activated. Passing `null` when the library entry has none
+    // clears any stale value left by a previously-active model — critical for
+    // `api_mode`, since a leftover `anthropic_messages`/`chat_completions`
+    // would otherwise route the new endpoint over the wrong protocol.
+    const libEntry = resolveLibraryModelEntry(provider, model, baseUrl);
+    setModelConfig(
+      provider,
+      model,
+      baseUrl,
+      profile,
+      libEntry?.contextLength ?? null,
+      libEntry?.apiMode ?? null,
+    );
+
+    // Restart gateway when provider, model, or endpoint changes so it picks up new config
+    if (
+      isGatewayRunning(profile) &&
+      (prev.provider !== provider ||
+        prev.model !== model ||
+        prev.baseUrl !== baseUrl)
+    ) {
+      restartGateway(profile);
+    }
+
+    return true;
+  }
+
   ipcMain.handle(
     "set-model-config",
     async (
@@ -1095,93 +1216,19 @@ export function registerIpcHandlers(context: IpcContext): void {
       baseUrl: string,
       profile?: string,
     ) => {
-      const conn = getConnectionConfig();
-      if (conn.mode === "remote") {
-        return withRemoteDashboard(
-          conn,
-          () => remoteSetModelConfig(conn, provider, model, baseUrl),
-          () => {
-            const prev = getModelConfig(profile);
-            // Same library-mirroring as the pure-local path below: carry the
-            // activated model's context-window and api_mode into config.yaml
-            // so this local fallback write doesn't leave a stale transport.
-            const libEntry = resolveLibraryModelEntry(provider, model, baseUrl);
-            setModelConfig(
-              provider,
-              model,
-              baseUrl,
-              profile,
-              libEntry?.contextLength ?? null,
-              libEntry?.apiMode ?? null,
-            );
-            if (
-              isGatewayRunning(profile) &&
-              (prev.provider !== provider ||
-                prev.model !== model ||
-                prev.baseUrl !== baseUrl)
-            ) {
-              restartGateway(profile);
-            }
-            return true;
-          },
-        );
-      }
-      if (conn.mode === "ssh" && conn.ssh) {
-        return withSshDashboardSessions(
-          conn,
-          (config) => remoteSetModelConfig(config, provider, model, baseUrl),
-          async () => {
-            const prev = await sshGetModelConfig(conn.ssh!, profile);
-            await sshSetModelConfig(
-              conn.ssh!,
-              provider,
-              model,
-              baseUrl,
-              profile,
-            );
-            if (
-              (await sshGatewayStatus(conn.ssh!)) &&
-              (prev.provider !== provider ||
-                prev.model !== model ||
-                prev.baseUrl !== baseUrl)
-            ) {
-              await sshStopGateway(conn.ssh!);
-              await sshStartGateway(conn.ssh!);
-            }
-            return true;
-          },
-          activeSshProfile(profile),
-        );
-      }
-      const prev = getModelConfig(profile);
-      // Mirror the activated model's context-window override and API-protocol
-      // mode (if any) into config.yaml so the gauge, the agent's
-      // auto-compaction threshold, and the runtime transport all match the
-      // model being activated. Passing `null` when the library entry has none
-      // clears any stale value left by a previously-active model — critical for
-      // `api_mode`, since a leftover `anthropic_messages`/`chat_completions`
-      // would otherwise route the new endpoint over the wrong protocol.
-      const libEntry = resolveLibraryModelEntry(provider, model, baseUrl);
-      setModelConfig(
+      const result = await applySetModelConfig(
         provider,
         model,
         baseUrl,
         profile,
-        libEntry?.contextLength ?? null,
-        libEntry?.apiMode ?? null,
       );
-
-      // Restart gateway when provider, model, or endpoint changes so it picks up new config
-      if (
-        isGatewayRunning(profile) &&
-        (prev.provider !== provider ||
-          prev.model !== model ||
-          prev.baseUrl !== baseUrl)
-      ) {
-        restartGateway(profile);
-      }
-
-      return true;
+      // Every screen caching the active model has to re-read it. Without this,
+      // persisting from Agent Settings or Providers left the Chat tab holding
+      // the old value — and with it a stale "No model selected" banner that no
+      // action could clear. The channel is named for the library, but its only
+      // meaning to a listener is "your cached model info is stale".
+      notifyModelLibraryChanged();
+      return result;
     },
   );
 
@@ -2371,6 +2418,30 @@ export function registerIpcHandlers(context: IpcContext): void {
       return sshReadMemory(conn.ssh, profile);
     return readMemory(profile);
   });
+  ipcMain.handle("read-all-agents-memory", async () => {
+    const conn = getConnectionConfig();
+    if (conn.mode === "ssh" && conn.ssh) {
+      // list-profiles and read-memory are both already SSH-aware. A local-only
+      // summary would list LOCAL agents while drilling into REMOTE memory.
+      const remote = conn.ssh;
+      const profiles = await sshListProfiles(remote);
+      return Promise.all(
+        profiles.map(async (p) => {
+          // SshProfileInfo has no id; its name is the directory slug.
+          const base = { id: p.name, name: p.name, isActive: p.isActive };
+          try {
+            return summariseAgentMemory(
+              base,
+              await sshReadMemory(remote, p.name),
+            );
+          } catch {
+            return unavailableAgentMemory(base);
+          }
+        }),
+      );
+    }
+    return readAllAgentsMemory();
+  });
   ipcMain.handle(
     "add-memory-entry",
     (_event, content: string, profile?: string) => {
@@ -2382,29 +2453,41 @@ export function registerIpcHandlers(context: IpcContext): void {
   );
   ipcMain.handle(
     "update-memory-entry",
-    (_event, index: number, content: string, profile?: string) => {
+    (
+      _event,
+      index: number,
+      content: string,
+      profile?: string,
+      expected?: string,
+    ) => {
       const conn = getConnectionConfig();
       if (conn.mode === "ssh" && conn.ssh)
-        return sshUpdateMemoryEntry(conn.ssh, index, content, profile);
-      return updateMemoryEntry(index, content, profile);
+        return sshUpdateMemoryEntry(
+          conn.ssh,
+          index,
+          content,
+          profile,
+          expected,
+        );
+      return updateMemoryEntry(index, content, profile, expected);
     },
   );
   ipcMain.handle(
     "remove-memory-entry",
-    (_event, index: number, profile?: string) => {
+    (_event, index: number, profile?: string, expected?: string) => {
       const conn = getConnectionConfig();
       if (conn.mode === "ssh" && conn.ssh)
-        return sshRemoveMemoryEntry(conn.ssh, index, profile);
-      return removeMemoryEntry(index, profile);
+        return sshRemoveMemoryEntry(conn.ssh, index, profile, expected);
+      return removeMemoryEntry(index, profile, expected);
     },
   );
   ipcMain.handle(
     "write-user-profile",
-    (_event, content: string, profile?: string) => {
+    (_event, content: string, profile?: string, expected?: string) => {
       const conn = getConnectionConfig();
       if (conn.mode === "ssh" && conn.ssh)
-        return sshWriteUserProfile(conn.ssh, content, profile);
-      return writeUserProfile(content, profile);
+        return sshWriteUserProfile(conn.ssh, content, profile, expected);
+      return writeUserProfile(content, profile, expected);
     },
   );
 

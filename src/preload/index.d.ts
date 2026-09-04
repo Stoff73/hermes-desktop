@@ -296,7 +296,11 @@ interface HermesAPI {
   // Configuration (profile-aware)
   getEnv: (profile?: string) => Promise<Record<string, string>>;
   setEnv: (key: string, value: string, profile?: string) => Promise<boolean>;
-  validateChatReadiness: (profile?: string) => Promise<{
+  removeEnv: (key: string, profile?: string) => Promise<boolean>;
+  validateChatReadiness: (
+    profile?: string,
+    override?: { provider: string; model: string; baseUrl: string },
+  ) => Promise<{
     ok: boolean;
     code?:
       | "NO_ACTIVE_MODEL"
@@ -743,25 +747,74 @@ interface HermesAPI {
 
   // Memory
   readMemory: (profile?: string) => Promise<{
-    memory: { content: string; exists: boolean; lastModified: number | null };
-    user: { content: string; exists: boolean; lastModified: number | null };
-    stats: { totalSessions: number; totalMessages: number };
+    memory: {
+      content: string;
+      exists: boolean;
+      lastModified: number | null;
+      entries: { index: number; content: string }[];
+      charCount: number;
+      charLimit: number;
+    };
+    user: {
+      content: string;
+      exists: boolean;
+      lastModified: number | null;
+      charCount: number;
+      charLimit: number;
+    };
+    sessions: {
+      totalSessions: number;
+      totalMessages: number;
+      lastSessionAt: number | null;
+      available: boolean;
+    };
+    provider: { active: string | null; installed: boolean };
+    vault: { path: string | null; exists: boolean };
   }>;
+  readAllAgentsMemory: () => Promise<
+    Array<{
+      id: string;
+      name: string;
+      isActive: boolean;
+      color?: string;
+      avatar?: string | null;
+      memoryChars: number;
+      memoryLimit: number;
+      memoryEntries: number;
+      userChars: number;
+      userLimit: number;
+      totalSessions: number;
+      lastSessionAt: number | null;
+      provider: string | null;
+      vaultLinked: boolean;
+      available: boolean;
+      status: {
+        state: "running" | "stopped" | "unknown";
+        issue: string | null;
+      };
+    }>
+  >;
 
   addMemoryEntry: (
     content: string,
     profile?: string,
-  ) => Promise<{ success: boolean; error?: string }>;
+  ) => Promise<{ success: boolean; error?: string; conflict?: boolean }>;
   updateMemoryEntry: (
     index: number,
     content: string,
     profile?: string,
-  ) => Promise<{ success: boolean; error?: string }>;
-  removeMemoryEntry: (index: number, profile?: string) => Promise<boolean>;
+    expected?: string,
+  ) => Promise<{ success: boolean; error?: string; conflict?: boolean }>;
+  removeMemoryEntry: (
+    index: number,
+    profile?: string,
+    expected?: string,
+  ) => Promise<{ success: boolean; error?: string; conflict?: boolean }>;
   writeUserProfile: (
     content: string,
     profile?: string,
-  ) => Promise<{ success: boolean; error?: string }>;
+    expected?: string,
+  ) => Promise<{ success: boolean; error?: string; conflict?: boolean }>;
 
   // Soul
   readSoul: (profile?: string) => Promise<string>;

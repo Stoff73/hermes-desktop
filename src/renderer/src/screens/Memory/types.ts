@@ -3,6 +3,7 @@ export interface MemoryEntry {
   content: string;
 }
 
+/** Mirrors `MemoryInfo` in src/main/memory.ts. */
 export interface MemoryData {
   memory: {
     content: string;
@@ -19,7 +20,14 @@ export interface MemoryData {
     charCount: number;
     charLimit: number;
   };
-  stats: { totalSessions: number; totalMessages: number };
+  sessions: {
+    totalSessions: number;
+    totalMessages: number;
+    lastSessionAt: number | null;
+    available: boolean;
+  };
+  provider: { active: string | null; installed: boolean };
+  vault: { path: string | null; exists: boolean };
 }
 
 export interface MemoryProviderInfo {
@@ -30,4 +38,22 @@ export interface MemoryProviderInfo {
   envVars: string[];
 }
 
-export type MemoryTab = "entries" | "profile" | "providers" | "soul";
+/** Mirrors `AgentMemorySummary` in src/main/agents-memory.ts. */
+export interface AgentMemorySummary {
+  id: string;
+  name: string;
+  isActive: boolean;
+  color?: string;
+  avatar?: string | null;
+  memoryChars: number;
+  memoryLimit: number;
+  memoryEntries: number;
+  userChars: number;
+  userLimit: number;
+  totalSessions: number;
+  lastSessionAt: number | null;
+  provider: string | null;
+  vaultLinked: boolean;
+  available: boolean;
+  status: { state: "running" | "stopped" | "unknown"; issue: string | null };
+}

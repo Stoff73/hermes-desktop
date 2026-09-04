@@ -29,6 +29,7 @@ import {
 } from "./attachmentUtils";
 import { AttachmentChip } from "../../components/AttachmentChip";
 import { ContextGauge, type ContextUsage } from "./ContextGauge";
+import { OPEN_MODEL_PICKER_EVENT } from "./ModelPicker";
 import type { Attachment } from "../../../../shared/attachments";
 
 export interface ChatInputHandle {
@@ -46,6 +47,38 @@ export interface ChatInputReadiness {
   message?: string;
   fixLocation?: string;
   expectedEnvKey?: string;
+}
+
+/**
+ * Which screen each readiness fixLocation sends you to.
+ *
+ * "models" is deliberately absent: sending someone to the Providers overview
+ * to pick a model is a detour past the picker sitting in this very composer.
+ * It opens that picker instead, already filtered to their provider.
+ * "setup" has no in-app screen, so it stays plain text rather than a link
+ * that goes nowhere.
+ */
+const READINESS_FIX_VIEW: Record<string, string> = {
+  providers: "providers",
+  gateway: "gateway",
+};
+
+/** Layout owns the view state and listens for this; see Layout.tsx `goTo`. */
+function goToView(view: string): void {
+  window.dispatchEvent(new CustomEvent("navigation:goto", { detail: view }));
+}
+
+function runReadinessFix(loc: string): void {
+  if (loc === "models") {
+    window.dispatchEvent(new Event(OPEN_MODEL_PICKER_EVENT));
+    return;
+  }
+  goToView(READINESS_FIX_VIEW[loc]);
+}
+
+/** Locations the fix label can actually act on. */
+function isActionableFix(loc: string): boolean {
+  return loc === "models" || Boolean(READINESS_FIX_VIEW[loc]);
 }
 
 interface ChatInputProps {
@@ -496,6 +529,10 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
 
     // Map fixLocation → user-facing call to action. The strings are
     // wrapped in i18n; the location ids come from main/validation.ts.
+    //
+    // The label used to be an inert <span> that read like a link ("Choose a
+    // model in Models →") and did nothing when clicked. Layout already
+    // listens for `navigation:goto`, so the fix needs no prop plumbing.
     function readinessFixLabel(loc: string | undefined): string {
       switch (loc) {
         case "providers":
@@ -623,11 +660,21 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
                   })
                 : readiness.message}
             </span>
-            {readiness.fixLocation && (
-              <span className="chat-readiness-fix">
-                {readinessFixLabel(readiness.fixLocation)}
-              </span>
-            )}
+            {readiness.fixLocation &&
+              (isActionableFix(readiness.fixLocation) ? (
+                <button
+                  type="button"
+                  className="chat-readiness-fix is-link"
+                  data-testid="chat-readiness-fix"
+                  onClick={() => runReadinessFix(readiness.fixLocation!)}
+                >
+                  {readinessFixLabel(readiness.fixLocation)}
+                </button>
+              ) : (
+                <span className="chat-readiness-fix">
+                  {readinessFixLabel(readiness.fixLocation)}
+                </span>
+              ))}
           </div>
         )}
         {(attachments.length > 0 || attachmentError) && (

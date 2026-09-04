@@ -31,8 +31,16 @@ vi.mock("../../screens/Soul/Soul", () => ({
   default: (): React.JSX.Element => <div data-testid="soul" />,
 }));
 
-vi.mock("../../screens/Memory/MemoryEntries", () => ({
-  MemoryEntries: (): React.JSX.Element => <div data-testid="memory" />,
+vi.mock("../../screens/Memory/MemorySystems", () => ({
+  MemorySystems: (): React.JSX.Element => <div data-testid="memory" />,
+}));
+
+vi.mock("./ProfileModelPicker", () => ({
+  default: (): React.JSX.Element => <div data-testid="model-picker" />,
+}));
+
+vi.mock("./ProfileWorkFolder", () => ({
+  default: () => <div data-testid="work-folder" />,
 }));
 
 vi.mock("./ProfileWalletPane", () => ({
@@ -84,7 +92,32 @@ function installHermesAPI(profiles: ProfileInfo[]): {
       setProfileAvatar: vi.fn().mockResolvedValue({ success: true }),
       removeProfileAvatar: vi.fn().mockResolvedValue({ success: true }),
       deleteProfile: vi.fn().mockResolvedValue({ success: true }),
-      readMemory: vi.fn().mockResolvedValue({ entries: [] }),
+      readMemory: vi.fn().mockResolvedValue({
+        memory: {
+          content: "",
+          exists: false,
+          lastModified: null,
+          entries: [],
+          charCount: 0,
+          charLimit: 2200,
+        },
+        user: {
+          content: "",
+          exists: false,
+          lastModified: null,
+          charCount: 0,
+          charLimit: 1375,
+        },
+        sessions: {
+          totalSessions: 0,
+          totalMessages: 0,
+          lastSessionAt: null,
+          available: false,
+        },
+        provider: { active: null, installed: false },
+        vault: { path: null, exists: false },
+      }),
+      discoverMemoryProviders: vi.fn().mockResolvedValue([]),
     },
   });
   return { setProfileName };
@@ -141,5 +174,28 @@ describe("ProfileModal name editor", () => {
     await waitFor(() => {
       expect(api.setProfileName).toHaveBeenCalledWith("default", "Saved Agent");
     });
+  });
+});
+
+describe("Memory tab", () => {
+  it("loads memory and providers for this agent and mounts the inventory", async () => {
+    installHermesAPI([profile()]);
+    renderModal();
+    fireEvent.click(
+      await screen.findByRole("button", { name: "agents.sectionAgentMemory" }),
+    );
+    expect(await screen.findByTestId("memory")).toBeTruthy();
+    const hermes = (
+      window as unknown as {
+        hermesAPI: {
+          readMemory: ReturnType<typeof vi.fn>;
+          discoverMemoryProviders: ReturnType<typeof vi.fn>;
+        };
+      }
+    ).hermesAPI;
+    await waitFor(() =>
+      expect(hermes.discoverMemoryProviders).toHaveBeenCalledWith("default"),
+    );
+    expect(hermes.readMemory).toHaveBeenCalledWith("default");
   });
 });

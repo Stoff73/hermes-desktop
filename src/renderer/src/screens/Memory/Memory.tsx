@@ -2,41 +2,38 @@ import { useState, useEffect, useCallback } from "react";
 import { Refresh } from "../../assets/icons";
 import { useI18n } from "../../components/useI18n";
 import { OrbLoader } from "../../components/OrbLoader";
-import Soul from "../Soul/Soul";
-import { CapacityCards } from "./CapacityCards";
-import { MemoryTabs } from "./MemoryTabs";
-import { MemoryEntries } from "./MemoryEntries";
-import { MemoryProfile } from "./MemoryProfile";
-import { MemoryProviders } from "./MemoryProviders";
-import type { MemoryData, MemoryProviderInfo, MemoryTab } from "./types";
+import ProfileAvatar from "../../components/common/ProfileAvatar";
+import { CapacityBar } from "./CapacityBar";
+import { relativeTime } from "./MemorySystems";
+import type { AgentMemorySummary } from "./types";
 
-function Memory({ profile }: { profile?: string }): React.JSX.Element {
+interface MemoryProps {
+  /** Called with the profile id when a row is selected. */
+  onOpenAgent?: (profileId: string) => void;
+}
+
+/**
+ * Cross-agent memory overview. Reads only — every write happens in Agent
+ * Settings (ProfileModal → Memory), so there is exactly one place that edits
+ * memory. Selecting a row opens that agent there.
+ */
+function Memory({ onOpenAgent }: MemoryProps): React.JSX.Element {
   const { t } = useI18n();
-  const [data, setData] = useState<MemoryData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<MemoryTab>("entries");
-  const [error] = useState("");
-  const [memoryProvider, setMemoryProvider] = useState<string | null>(null);
-  const [providers, setProviders] = useState<MemoryProviderInfo[]>([]);
+  const [agents, setAgents] = useState<AgentMemorySummary[] | null>(null);
 
-  const loadData = useCallback(async () => {
-    const [d, provider, provs] = await Promise.all([
-      window.hermesAPI.readMemory(profile),
-      window.hermesAPI.getConfig("memory.provider", profile),
-      window.hermesAPI.discoverMemoryProviders(profile),
-    ]);
-    setData(d as MemoryData);
-    setMemoryProvider(provider);
-    setProviders(provs);
-    setLoading(false);
-  }, [profile]);
+  const load = useCallback(async (): Promise<void> => {
+    try {
+      setAgents(await window.hermesAPI.readAllAgentsMemory());
+    } catch {
+      setAgents([]);
+    }
+  }, []);
 
   useEffect(() => {
-    setLoading(true);
-    loadData();
-  }, [loadData]);
+    void load();
+  }, [load]);
 
-  if (loading || !data) {
+  if (!agents) {
     return (
       <div className="settings-container">
         <h1 className="settings-header">{t("memory.title")}</h1>
@@ -54,49 +51,98 @@ function Memory({ profile }: { profile?: string }): React.JSX.Element {
           <h1 className="settings-header" style={{ marginBottom: 4 }}>
             {t("memory.title")}
           </h1>
-          <p className="memory-subtitle">{t("memory.subtitle")}</p>
+          <p className="memory-subtitle">{t("memory.overviewSubtitle")}</p>
         </div>
-        <button className="btn btn-secondary btn-sm" onClick={loadData}>
+        <button
+          className="btn btn-secondary btn-sm"
+          onClick={() => void load()}
+        >
           <Refresh size={13} />
         </button>
       </div>
 
-      <CapacityCards data={data} />
-      <MemoryTabs activeTab={tab} onTabChange={setTab} />
-
-      {error && <div className="memory-error">{error}</div>}
-
-      {tab === "entries" && (
-        <MemoryEntries
-          entries={data.memory.entries}
-          profile={profile}
-          onRefresh={loadData}
-        />
-      )}
-
-      {tab === "profile" && (
-        <MemoryProfile
-          content={data.user.content}
-          charLimit={data.user.charLimit}
-          profile={profile}
-          onRefresh={loadData}
-        />
-      )}
-
-      {tab === "providers" && (
-        <MemoryProviders
-          providers={providers}
-          activeProvider={memoryProvider}
-          profile={profile}
-          onRefresh={loadData}
-        />
-      )}
-
-      {tab === "soul" && (
-        <div className="memory-soul-tab">
-          <Soul profile={profile} />
-        </div>
-      )}
+      <div className="memory-agents">
+        {agents.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            className={`memory-agent ${a.isActive ? "is-active" : ""}`}
+            data-testid={`memory-agent-${a.id}`}
+            title={t("memory.openAgentMemory")}
+            onClick={() => onOpenAgent?.(a.id)}
+          >
+            <div className="memory-agent-head">
+              <ProfileAvatar
+                name={a.id}
+                color={a.color}
+                avatar={a.avatar}
+                size={28}
+              />
+              <span className="memory-agent-name">{a.name}</span>
+              <span
+                className={`memory-agent-dot is-${a.status.state}`}
+                data-testid={`memory-agent-dot-${a.id}`}
+                title={t(`memory.runState.${a.status.state}`)}
+                aria-label={t(`memory.runState.${a.status.state}`)}
+              />
+              {a.isActive && (
+                <span className="memory-agent-active">
+                  {t("memory.activeAgent")}
+                </span>
+              )}
+            </div>
+            {a.status.state === "stopped" && (
+              <div className="memory-agent-issue">
+                {a.status.issue
+                  ? t("memory.runIssue", { reason: a.status.issue })
+                  : t("memory.runState.stopped")}
+              </div>
+            )}
+            {a.available ? (
+              <div className="memory-agent-metrics">
+                <div className="memory-agent-bars">
+                  <CapacityBar
+                    used={a.memoryChars}
+                    limit={a.memoryLimit}
+                    label={t("memory.agentMemory")}
+                    tone="neutral"
+                  />
+                  <CapacityBar
+                    used={a.userChars}
+                    limit={a.userLimit}
+                    label={t("memory.userProfile")}
+                    tone="neutral"
+                  />
+                </div>
+                <div className="memory-agent-facts">
+                  <span>
+                    {a.totalSessions > 0
+                      ? t("memory.sessionsCount", { count: a.totalSessions })
+                      : t("memory.sessionsUnavailable")}
+                  </span>
+                  {a.lastSessionAt !== null && (
+                    <span>
+                      {t("memory.lastActive", {
+                        when: relativeTime(a.lastSessionAt),
+                      })}
+                    </span>
+                  )}
+                  <span>{a.provider ?? t("memory.providerBuiltIn")}</span>
+                  <span>
+                    {a.vaultLinked
+                      ? t("memory.vaultLinked")
+                      : t("memory.vaultNotLinked")}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="memory-agent-unavailable">
+                {t("memory.agentUnavailable")}
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

@@ -45,20 +45,20 @@ This plan is written for an agent (Opus 5) executing inline in one session. Foll
 
 | # | Task | Status | Commit |
 | --- | --- | --- | --- |
-| 0 | Branch and baseline | not started | |
-| 1 | Compare-and-swap writes with an expected-content check | not started | |
-| 2 | Route every memory writer through the check | not started | |
-| 3 | Fix `getActiveMemoryProvider` reading the LLM provider | not started | |
-| 4 | Per-profile session reader | not started | |
-| 5 | Five-system `MemoryInfo` contract and its consumers | not started | |
-| 6 | Cross-agent memory summary reader and IPC | not started | |
-| 7 | Systems inventory, vault pane, capacity tone, styles | not started | |
-| 8 | Conflict-aware editors | not started | |
-| 9 | Agent Settings: Memory tab and naming | not started | |
-| 10 | Memory screen becomes the cross-agent overview | not started | |
-| 11 | Agent Settings: model and provider in the Profile tab | not started | |
-| 12 | Documentation and full verification | not started | |
-| 13 | Finish the branch | not started | |
+| 0 | Branch and baseline | done | (no code) |
+| 1 | Compare-and-swap writes with an expected-content check | done | b04741d |
+| 2 | Route every memory writer through the check | done | 75c32bc |
+| 3 | Fix `getActiveMemoryProvider` reading the LLM provider | done | 0aad884 |
+| 4 | Per-profile session reader | done | 10621c7 |
+| 5 | Five-system `MemoryInfo` contract and its consumers | done | b29f77a |
+| 6 | Cross-agent memory summary reader and IPC | done | b92939e |
+| 7 | Systems inventory, vault pane, capacity tone, styles | done | bd6e660 |
+| 8 | Conflict-aware editors | done | 29292db |
+| 9 | Agent Settings: Memory tab and naming | done | 0a51d38 |
+| 10 | Memory screen becomes the cross-agent overview | done | 7b8f693 |
+| 11 | Agent Settings: model and provider in the Profile tab | done | 09befc4 |
+| 12 | Documentation and full verification | done (app check 4/6, 2 open) | 68957d0 |
+| 13 | Finish the branch | done | https://github.com/Stoff73/hermes-desktop/pull/2 |
 
 ## File map
 
@@ -115,24 +115,24 @@ Files this plan creates or changes, and what each is responsible for.
 
 **Interfaces:** none.
 
-- [ ] **Step 1: Create the isolated workspace**
+- [x] **Step 1: Create the isolated workspace**
 
 Invoke `superpowers:using-git-worktrees`. Branch name: `feat/agent-settings-memory`. If it creates a worktree under `.worktrees/`, `cd` into it for every later command. Confirm:
 
 Run: `git rev-parse --abbrev-ref HEAD`
 Expected: `feat/agent-settings-memory`
 
-- [ ] **Step 2: Install and typecheck the untouched tree**
+- [x] **Step 2: Install and typecheck the untouched tree**
 
 Run: `npm install && npm run typecheck`
 Expected: typecheck clean. If it is not clean before you have changed anything, stop and log it.
 
-- [ ] **Step 3: Measure the test baseline yourself**
+- [x] **Step 3: Measure the test baseline yourself**
 
 Run: `npx vitest run 2>&1 | tail -15`
 Expected: mostly passing. At the time of writing `tests/gateway-restart.test.ts` and `tests/terminal-launcher.test.ts` failed on a clean tree and appeared flaky, but that is **unverified for your checkout**. Write the exact list of failing files under **Execution log → Baseline**. Any failure outside that list later is yours.
 
-- [ ] **Step 4: Record the baseline**
+- [x] **Step 4: Record the baseline**
 
 Update the Progress row for Task 0 to `done` (no commit; nothing changed). Commit the plan file alone:
 
@@ -160,7 +160,7 @@ git commit -m "docs(plan): record test baseline before implementation"
   - `readCurrent(filePath: string): string`
   - `mutateMemoryFile(filePath: string, mutate: (current: string) => Mutation): WriteResult`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/main/memory-write.test.ts
@@ -246,12 +246,12 @@ describe("mutateMemoryFile", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/main/memory-write.test.ts`
 Expected: FAIL — cannot resolve `./memory-write`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```ts
 // src/main/memory-write.ts
@@ -332,12 +332,12 @@ export function mutateMemoryFile(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/main/memory-write.test.ts`
 Expected: PASS, 7 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/main/memory-write.ts src/main/memory-write.test.ts docs/superpowers/plans/2026-09-02-memory-per-agent.md
@@ -367,7 +367,7 @@ git commit -m "feat(memory): compare-and-swap writes that report conflicts inste
   - `writeMemoryRaw(content: string, profile?: string): WriteResult`
   - `expected` is what the user was looking at: the entry's original text for update/remove, the whole file for the user profile. When omitted (agent-sync, old callers) the check is skipped.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/main/memory-writers.test.ts
@@ -480,12 +480,12 @@ describe("memory writers", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/main/memory-writers.test.ts`
 Expected: FAIL — `removeMemoryEntry` returns `true`, not `{ success: true }`; the `expected` tests fail because the argument is ignored.
 
-- [ ] **Step 3: Replace the five writers in `src/main/memory.ts`**
+- [x] **Step 3: Replace the five writers in `src/main/memory.ts`**
 
 Add the import at the top of `src/main/memory.ts`:
 
@@ -608,12 +608,12 @@ export function writeUserProfile(
 }
 ```
 
-- [ ] **Step 4: Run the writer tests**
+- [x] **Step 4: Run the writer tests**
 
 Run: `npx vitest run src/main/memory-writers.test.ts src/main/memory-write.test.ts`
 Expected: PASS, 11 + 7 tests.
 
-- [ ] **Step 5: Normalise the SSH twins**
+- [x] **Step 5: Normalise the SSH twins**
 
 In `src/main/ssh-remote.ts`, add to the existing `import type { MemoryInfo } from "./memory";` line:
 
@@ -720,7 +720,7 @@ function sshEntryStale(
 }
 ```
 
-- [ ] **Step 6: Pass `expected` through IPC and preload**
+- [x] **Step 6: Pass `expected` through IPC and preload**
 
 In `src/main/ipc/register.ts`, replace the `update-memory-entry`, `remove-memory-entry` and `write-user-profile` handlers with:
 
@@ -814,12 +814,12 @@ In `src/preload/index.d.ts`, replace the matching four declarations with:
   ) => Promise<{ success: boolean; error?: string; conflict?: boolean }>;
 ```
 
-- [ ] **Step 7: Typecheck and run the memory tests**
+- [x] **Step 7: Typecheck and run the memory tests**
 
 Run: `npm run typecheck && npx vitest run src/main/memory-writers.test.ts src/main/agent-sync.test.ts`
 Expected: typecheck clean (`MemoryEntries.tsx` still compiles because it ignores `removeMemoryEntry`'s result; Task 8 fixes that). Tests PASS. If `agent-sync.test.ts` fails on `writeMemoryRaw`'s return shape, its mock at `src/main/agent-sync.test.ts:90` returns the old shape — update the mock to return `{ success: true }`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/main/memory.ts src/main/memory-writers.test.ts src/main/ssh-remote.ts src/main/ipc/register.ts src/preload/index.ts src/preload/index.d.ts src/main/agent-sync.test.ts docs/superpowers/plans/2026-09-02-memory-per-agent.md
@@ -840,7 +840,7 @@ git commit -m "feat(memory): route all memory writes through the conflict check"
 - Consumes: `getYamlPath(content: string, dottedKey: string): string | null` from `./yaml-path` (returns `""` for `provider: ""`, `null` when the key is absent).
 - Produces: `getActiveMemoryProvider(profile?: string): string` — unchanged signature, correct value. Task 5 depends on it. Side effect: `discoverMemoryProviders` derives each provider's `active` flag from this, so the Active badge on provider cards starts working.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/main/active-memory-provider.test.ts
@@ -890,12 +890,12 @@ describe("getActiveMemoryProvider", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/main/active-memory-provider.test.ts`
 Expected: FAIL — the first test gets `"xai"`, expected `""`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `src/main/installer.ts`, add `import { getYamlPath } from "./yaml-path";` next to the other local imports (around line 19-23) if absent, then replace the body of `getActiveMemoryProvider`:
 
@@ -919,12 +919,12 @@ export function getActiveMemoryProvider(profile?: string): string {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/main/active-memory-provider.test.ts && npm run typecheck:node`
 Expected: PASS, 4 tests; typecheck clean.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/main/installer.ts src/main/active-memory-provider.test.ts docs/superpowers/plans/2026-09-02-memory-per-agent.md
@@ -948,7 +948,7 @@ git commit -m "fix(memory): read memory.provider instead of any provider: line"
   - `readSessionMemory(profile?: string): SessionMemory`
 - The real `sessions` table has `started_at REAL NOT NULL` (unix seconds, possibly fractional); `lastSessionAt` is floored to whole seconds.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/main/memory-session.test.ts
@@ -1021,12 +1021,12 @@ describe("readSessionMemory", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/main/memory-session.test.ts`
 Expected: FAIL — cannot resolve `./memory-session`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```ts
 // src/main/memory-session.ts
@@ -1089,12 +1089,12 @@ export function readSessionMemory(profile?: string): SessionMemory {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/main/memory-session.test.ts`
 Expected: PASS, 3 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/main/memory-session.ts src/main/memory-session.test.ts docs/superpowers/plans/2026-09-02-memory-per-agent.md
@@ -1138,7 +1138,7 @@ export interface MemoryInfo {
 
 `stats` is gone. The renderer's `MemoryData` mirrors this exactly.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/main/memory-contract.test.ts
@@ -1199,12 +1199,12 @@ describe("readMemory contract", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/main/memory-contract.test.ts`
 Expected: FAIL — `d.sessions` is undefined.
 
-- [ ] **Step 3: Extend `MemoryInfo` and `readMemory` in `src/main/memory.ts`**
+- [x] **Step 3: Extend `MemoryInfo` and `readMemory` in `src/main/memory.ts`**
 
 Delete `getSessionStats` (lines 91-119) and the `import Database from "better-sqlite3";` line. Add these imports:
 
@@ -1294,12 +1294,12 @@ In `readMemory`, replace `stats: getSessionStats(profile),` with:
     vault: readVaultMemory(profile),
 ```
 
-- [ ] **Step 4: Run the contract test**
+- [x] **Step 4: Run the contract test**
 
 Run: `npx vitest run src/main/memory-contract.test.ts`
 Expected: PASS, 5 tests. If the vault test fails because `readEnv` returned a cached empty map, the `.env` was read before it was written — the test writes it first, so check the order rather than adding cache-busting.
 
-- [ ] **Step 5: Mirror the shape over SSH**
+- [x] **Step 5: Mirror the shape over SSH**
 
 In `src/main/ssh-remote.ts`, change the `sshGetSessionStats` return type and script (lines 475-503) to:
 
@@ -1402,7 +1402,7 @@ Add `import type { SessionMemory } from "./memory-session";` beside the other ty
   };
 ```
 
-- [ ] **Step 6: Mirror the shape in preload and renderer types**
+- [x] **Step 6: Mirror the shape in preload and renderer types**
 
 In `src/preload/index.ts`, replace the `readMemory` entry with:
 
@@ -1484,7 +1484,7 @@ export interface MemoryProviderInfo {
 export type MemoryTab = "entries" | "profile" | "providers" | "soul";
 ```
 
-- [ ] **Step 7: Remove the two `stats` readers**
+- [x] **Step 7: Remove the two `stats` readers**
 
 Delete `src/renderer/src/screens/Memory/CapacityCards.tsx` (`git rm`). In `src/renderer/src/screens/Memory/Memory.tsx` delete line 6 (`import { CapacityCards } from "./CapacityCards";`) and line 64 (`<CapacityCards data={data} />`). Task 10 rewrites this file; a screen without summary cards in between is fine.
 
@@ -1558,12 +1558,12 @@ In `src/renderer/src/components/profile/ProfileModal.test.tsx:87`, replace `read
       }),
 ```
 
-- [ ] **Step 8: Typecheck and run the affected tests**
+- [x] **Step 8: Typecheck and run the affected tests**
 
 Run: `npm run typecheck && npx vitest run src/main/memory-contract.test.ts src/renderer/src/components/profile/`
 Expected: typecheck clean; all PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add src/main/memory.ts src/main/memory-contract.test.ts src/main/ssh-remote.ts src/preload/index.ts src/preload/index.d.ts src/renderer/src/screens/Memory/types.ts src/renderer/src/screens/Memory/Memory.tsx src/renderer/src/screens/Chat/hooks/useLocalCommands.ts src/shared/i18n/locales/en/memory.ts src/renderer/src/assets/main.css src/renderer/src/components/profile/ProfileModal.test.tsx docs/superpowers/plans/2026-09-02-memory-per-agent.md
@@ -1606,7 +1606,7 @@ export async function readAllAgentsMemory(): Promise<AgentMemorySummary[]>
 
 exposed as `window.hermesAPI.readAllAgentsMemory(): Promise<AgentMemorySummary[]>`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // src/main/agents-memory.test.ts
@@ -1681,12 +1681,12 @@ describe("readAllAgentsMemory", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/main/agents-memory.test.ts`
 Expected: FAIL — cannot resolve `./agents-memory`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```ts
 // src/main/agents-memory.ts
@@ -1782,7 +1782,7 @@ export async function readAllAgentsMemory(): Promise<AgentMemorySummary[]> {
 
 If `ProfileInfo` in `src/main/profiles.ts` does not declare `color`/`avatar`, check what `listProfiles` actually returns (it is what `ProfileModal.tsx:30-45` mirrors, which has both) and adapt the two field reads to the real names; do not add fields to `ProfileInfo` for this.
 
-- [ ] **Step 4: Register the IPC, SSH-aware**
+- [x] **Step 4: Register the IPC, SSH-aware**
 
 In `src/main/ipc/register.ts`, add to the imports:
 
@@ -1820,7 +1820,7 @@ import {
   });
 ```
 
-- [ ] **Step 5: Expose it in preload and the renderer types**
+- [x] **Step 5: Expose it in preload and the renderer types**
 
 In `src/preload/index.ts`, directly after the `readMemory` entry:
 
@@ -1871,12 +1871,12 @@ export interface AgentMemorySummary {
 }
 ```
 
-- [ ] **Step 6: Run test and typecheck**
+- [x] **Step 6: Run test and typecheck**
 
 Run: `npx vitest run src/main/agents-memory.test.ts && npm run typecheck`
 Expected: PASS, 3 tests; typecheck clean.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/main/agents-memory.ts src/main/agents-memory.test.ts src/main/ipc/register.ts src/preload/index.ts src/preload/index.d.ts src/renderer/src/screens/Memory/types.ts docs/superpowers/plans/2026-09-02-memory-per-agent.md
@@ -1907,7 +1907,7 @@ git commit -m "feat(memory): cross-agent memory summary reader and IPC"
   - `CapacityBar` gains `tone?: "ramp" | "neutral"` (default `"ramp"`) and renders 0% when `limit` is 0.
 - The overview (Task 10) does **not** mount `MemorySystems`; it renders its own compact rows. There is no `readOnly` prop anywhere.
 
-- [ ] **Step 1: Add the strings**
+- [x] **Step 1: Add the strings**
 
 In `src/shared/i18n/locales/en/memory.ts`, add inside the default export, directly after the three keys Task 5 added (`sessionsUnavailable`, `providerBuiltIn`, `vaultNotLinked`) and before `providers: {`:
 
@@ -1940,7 +1940,7 @@ In `src/shared/i18n/locales/en/memory.ts`, add inside the default export, direct
   vaultClear: "Unlink",
 ```
 
-- [ ] **Step 2: Give `CapacityBar` a neutral tone and a zero-limit guard**
+- [x] **Step 2: Give `CapacityBar` a neutral tone and a zero-limit guard**
 
 Replace the whole of `src/renderer/src/screens/Memory/CapacityBar.tsx` with:
 
@@ -1993,7 +1993,7 @@ export function CapacityBar({
 }
 ```
 
-- [ ] **Step 3: Write the failing env-removal test**
+- [x] **Step 3: Write the failing env-removal test**
 
 ```ts
 // src/main/remove-env.test.ts
@@ -2030,12 +2030,12 @@ describe("removeEnvValue", () => {
 });
 ```
 
-- [ ] **Step 4: Run it to verify it fails**
+- [x] **Step 4: Run it to verify it fails**
 
 Run: `npx vitest run src/main/remove-env.test.ts`
 Expected: FAIL — `mod.removeEnvValue is not a function`.
 
-- [ ] **Step 5: Implement the remover, its SSH twin, the IPC and the preload entry**
+- [x] **Step 5: Implement the remover, its SSH twin, the IPC and the preload entry**
 
 In `src/main/config.ts`, directly after `setEnvValue` (ends ~line 286):
 
@@ -2112,12 +2112,12 @@ and in `src/preload/index.d.ts`, beside the `setEnv` declaration:
   removeEnv: (key: string, profile?: string) => Promise<boolean>;
 ```
 
-- [ ] **Step 6: Run it to verify it passes, and typecheck**
+- [x] **Step 6: Run it to verify it passes, and typecheck**
 
 Run: `npx vitest run src/main/remove-env.test.ts && npm run typecheck`
 Expected: PASS, 2 tests; typecheck clean.
 
-- [ ] **Step 7: Write the failing vault-pane test**
+- [x] **Step 7: Write the failing vault-pane test**
 
 ```tsx
 // src/renderer/src/screens/Memory/MemoryVault.test.tsx
@@ -2210,12 +2210,12 @@ describe("MemoryVault", () => {
 });
 ```
 
-- [ ] **Step 8: Run it to verify it fails**
+- [x] **Step 8: Run it to verify it fails**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/MemoryVault.test.tsx`
 Expected: FAIL — cannot resolve `./MemoryVault`.
 
-- [ ] **Step 9: Implement the vault pane**
+- [x] **Step 9: Implement the vault pane**
 
 ```tsx
 // src/renderer/src/screens/Memory/MemoryVault.tsx
@@ -2309,12 +2309,12 @@ export function MemoryVault({
 }
 ```
 
-- [ ] **Step 10: Run the vault test to verify it passes**
+- [x] **Step 10: Run the vault test to verify it passes**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/MemoryVault.test.tsx`
 Expected: PASS, 5 tests.
 
-- [ ] **Step 11: Write the failing inventory test**
+- [x] **Step 11: Write the failing inventory test**
 
 ```tsx
 // src/renderer/src/screens/Memory/MemorySystems.test.tsx
@@ -2477,12 +2477,12 @@ describe("MemorySystems", () => {
 });
 ```
 
-- [ ] **Step 12: Run it to verify it fails**
+- [x] **Step 12: Run it to verify it fails**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/MemorySystems.test.tsx`
 Expected: FAIL — cannot resolve `./MemorySystems`.
 
-- [ ] **Step 13: Implement the inventory**
+- [x] **Step 13: Implement the inventory**
 
 ```tsx
 // src/renderer/src/screens/Memory/MemorySystems.tsx
@@ -2764,7 +2764,7 @@ export function MemorySystems({
 }
 ```
 
-- [ ] **Step 14: Style every new class name**
+- [x] **Step 14: Style every new class name**
 
 Append to `src/renderer/src/assets/main.css` after the `.memory-soul-tab .soul-container` rule (the last `.memory-*` rule, ~line 14590). Tokens follow the existing `.memory-entry-card` and `.memory-tab` rules so the screen reads as one design.
 
@@ -2914,12 +2914,12 @@ Append to `src/renderer/src/assets/main.css` after the `.memory-soul-tab .soul-c
 
 If any `var(--...)` token used above does not exist in `main.css` (check with `grep -c -- "--bg-elevated:" src/renderer/src/assets/main.css`, likewise `--border-bright`, `--radius-sm`, `--warning`), substitute the nearest existing token from the `.memory-entry-card` / `.memory-tab` rules; do not invent a token.
 
-- [ ] **Step 15: Run the Memory tests and typecheck**
+- [x] **Step 15: Run the Memory tests and typecheck**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/ src/main/remove-env.test.ts && npm run typecheck`
 Expected: PASS (2 env + 5 vault + 8 inventory); typecheck clean.
 
-- [ ] **Step 16: Commit**
+- [x] **Step 16: Commit**
 
 ```bash
 git add src/renderer/src/screens/Memory/ src/shared/i18n/locales/en/memory.ts src/renderer/src/assets/main.css src/main/config.ts src/main/remove-env.test.ts src/main/ssh-remote.ts src/main/ipc/register.ts src/preload/index.ts src/preload/index.d.ts docs/superpowers/plans/2026-09-02-memory-per-agent.md
@@ -2943,7 +2943,7 @@ git commit -m "feat(memory): systems inventory with five rows, vault pane that u
 
 Behaviour being built: every edit sends what the user was looking at; on `conflict` the view reloads (`onRefresh()`) and the message from the main process is shown. For entries the editor closes, because the entry it was editing may no longer be at that index. For the user profile the draft **survives** in the textarea and the baseline moves to the fresh disk content, so a second save is an informed overwrite rather than a silent one.
 
-- [ ] **Step 1: Write the failing entries test**
+- [x] **Step 1: Write the failing entries test**
 
 ```tsx
 // src/renderer/src/screens/Memory/MemoryEntries.test.tsx
@@ -3018,12 +3018,12 @@ describe("MemoryEntries conflict handling", () => {
 });
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/MemoryEntries.test.tsx`
 Expected: FAIL — `updateMemoryEntry` called with 3 arguments, not 4; delete result ignored.
 
-- [ ] **Step 3: Make `MemoryEntries` send expectations and react to conflicts**
+- [x] **Step 3: Make `MemoryEntries` send expectations and react to conflicts**
 
 In `src/renderer/src/screens/Memory/MemoryEntries.tsx`:
 
@@ -3112,12 +3112,12 @@ Update the two call sites in the JSX:
 
 - The confirm-delete Yes button's `onClick` becomes `onClick={() => handleDeleteEntry(entry.index, entry.content)}`.
 
-- [ ] **Step 4: Run the entries test to verify it passes**
+- [x] **Step 4: Run the entries test to verify it passes**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/MemoryEntries.test.tsx`
 Expected: PASS, 3 tests.
 
-- [ ] **Step 5: Write the failing profile-editor test**
+- [x] **Step 5: Write the failing profile-editor test**
 
 ```tsx
 // src/renderer/src/screens/Memory/MemoryProfile.test.tsx
@@ -3182,12 +3182,12 @@ describe("MemoryProfile conflict handling", () => {
 });
 ```
 
-- [ ] **Step 6: Run it to verify it fails**
+- [x] **Step 6: Run it to verify it fails**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/MemoryProfile.test.tsx`
 Expected: FAIL — `writeUserProfile` called with 2 arguments; resync test fails because the textarea keeps "me".
 
-- [ ] **Step 7: Make `MemoryProfile` send its baseline and resync**
+- [x] **Step 7: Make `MemoryProfile` send its baseline and resync**
 
 In `src/renderer/src/screens/Memory/MemoryProfile.tsx`, change the React import to `import { useEffect, useState } from "react";`, add after the `useState` lines:
 
@@ -3223,12 +3223,12 @@ and replace `handleSave` with:
   }
 ```
 
-- [ ] **Step 8: Run both editor tests and typecheck**
+- [x] **Step 8: Run both editor tests and typecheck**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/ && npm run typecheck:web`
 Expected: PASS; typecheck clean.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add src/renderer/src/screens/Memory/MemoryEntries.tsx src/renderer/src/screens/Memory/MemoryEntries.test.tsx src/renderer/src/screens/Memory/MemoryProfile.tsx src/renderer/src/screens/Memory/MemoryProfile.test.tsx docs/superpowers/plans/2026-09-02-memory-per-agent.md
@@ -3251,7 +3251,7 @@ git commit -m "feat(memory): editors send what the user saw and reload on confli
 - Consumes: `MemorySystems` (Task 7), `MemoryData`/`MemoryProviderInfo` (Task 5), `window.hermesAPI.discoverMemoryProviders(profile)` (exists).
 - Produces: nothing later tasks depend on. Task 11 adds to the same file's Profile tab.
 
-- [ ] **Step 1: Rename the labels**
+- [x] **Step 1: Rename the labels**
 
 In `src/shared/i18n/locales/en/agents.ts`:
 
@@ -3262,7 +3262,7 @@ In `src/shared/i18n/locales/en/agents.ts`:
 
 The keys are unchanged, so `Agents.tsx:460-463` and `ProfileSwitcher.tsx:216` pick up the new wording without edits.
 
-- [ ] **Step 2: Add a failing test for the Memory tab**
+- [x] **Step 2: Add a failing test for the Memory tab**
 
 Append to `src/renderer/src/components/profile/ProfileModal.test.tsx` inside the existing `describe` (or as a new `describe("Memory tab")` at the end):
 
@@ -3301,12 +3301,12 @@ and add to the `hermesAPI` object in `installHermesAPI`:
       discoverMemoryProviders: vi.fn().mockResolvedValue([]),
 ```
 
-- [ ] **Step 3: Run it to verify it fails**
+- [x] **Step 3: Run it to verify it fails**
 
 Run: `npx vitest run src/renderer/src/components/profile/ProfileModal.test.tsx`
 Expected: the new test FAILS — `discoverMemoryProviders` is never called (and `data-testid="memory"` is not found, since the real `MemoryEntries` renders instead of the mocked `MemorySystems`).
 
-- [ ] **Step 4: Mount the inventory and fetch the providers**
+- [x] **Step 4: Mount the inventory and fetch the providers**
 
 In `src/renderer/src/components/profile/ProfileModal.tsx`:
 
@@ -3397,12 +3397,12 @@ And in `src/renderer/src/assets/main.css`, directly before the `.profile-modal-s
 }
 ```
 
-- [ ] **Step 5: Run the modal tests and typecheck**
+- [x] **Step 5: Run the modal tests and typecheck**
 
 Run: `npx vitest run src/renderer/src/components/profile/ && npm run typecheck:web`
 Expected: PASS (existing tests plus the new one); typecheck clean.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/renderer/src/components/profile/ProfileModal.tsx src/renderer/src/components/profile/ProfileModal.test.tsx src/shared/i18n/locales/en/agents.ts src/renderer/src/assets/main.css docs/superpowers/plans/2026-09-02-memory-per-agent.md
@@ -3428,7 +3428,7 @@ git commit -m "feat(agent-settings): Memory tab shows all five systems; modal na
 - Consumes: `window.hermesAPI.readAllAgentsMemory()` and `AgentMemorySummary` (Task 6), `CapacityBar` with `tone` (Task 7), `relativeTime` exported from `MemorySystems.tsx` (Task 7), `useProfileModal().openProfile(name, { initialSection })` from `components/profile/ProfileModalContext.ts` (exists; `Layout` is rendered inside `ProfileModalProvider` — `ProfileSwitcher`, which Layout renders, already calls the hook).
 - Produces: `<Memory onOpenAgent={(profileId: string) => void} />`. The old `profile` prop is gone.
 
-- [ ] **Step 1: Add the strings**
+- [x] **Step 1: Add the strings**
 
 In `src/shared/i18n/locales/en/memory.ts`, add before `providers: {`:
 
@@ -3440,7 +3440,7 @@ In `src/shared/i18n/locales/en/memory.ts`, add before `providers: {`:
   openAgentMemory: "Open agent settings",
 ```
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 ```tsx
 // src/renderer/src/screens/Memory/Memory.test.tsx
@@ -3542,12 +3542,12 @@ describe("Memory overview", () => {
 });
 ```
 
-- [ ] **Step 3: Run it to verify it fails**
+- [x] **Step 3: Run it to verify it fails**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/Memory.test.tsx`
 Expected: FAIL — the component still calls `readMemory`, `getConfig` and `discoverMemoryProviders`, which the mock does not provide.
 
-- [ ] **Step 4: Rewrite `Memory.tsx`**
+- [x] **Step 4: Rewrite `Memory.tsx`**
 
 Replace the whole of `src/renderer/src/screens/Memory/Memory.tsx` with:
 
@@ -3690,7 +3690,7 @@ export default Memory;
 
 Delete `src/renderer/src/screens/Memory/MemoryTabs.tsx` (`git rm`) and remove the now-unused `export type MemoryTab = ...` line from `types.ts`.
 
-- [ ] **Step 5: Wire the caller**
+- [x] **Step 5: Wire the caller**
 
 In `src/renderer/src/screens/Layout/Layout.tsx`, add the import beside the other component imports:
 
@@ -3714,7 +3714,7 @@ If `Layout` already destructures `openProfile` somewhere, reuse it instead of ad
                 />
 ```
 
-- [ ] **Step 6: Style the overview rows**
+- [x] **Step 6: Style the overview rows**
 
 Append to `src/renderer/src/assets/main.css` after the inventory rules from Task 7:
 
@@ -3800,12 +3800,12 @@ Append to `src/renderer/src/assets/main.css` after the inventory rules from Task
 }
 ```
 
-- [ ] **Step 7: Run the Memory tests and typecheck**
+- [x] **Step 7: Run the Memory tests and typecheck**
 
 Run: `npx vitest run src/renderer/src/screens/Memory/ && npm run typecheck:web`
 Expected: PASS; typecheck clean. Typecheck catches `Layout.tsx` if the prop change was missed, and `types.ts` if `MemoryTab` is still imported anywhere.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/renderer/src/screens/Memory/ src/renderer/src/screens/Layout/Layout.tsx src/shared/i18n/locales/en/memory.ts src/renderer/src/assets/main.css docs/superpowers/plans/2026-09-02-memory-per-agent.md
@@ -3835,7 +3835,7 @@ git commit -m "feat(memory): Memory screen becomes a read-only cross-agent overv
   - `window.hermesAPI.setEnv(key, value, profile): Promise<boolean>`.
 - Produces: `<ProfileModelPicker profile={string} />` (default export). Nothing later depends on it.
 
-- [ ] **Step 1: Add the strings**
+- [x] **Step 1: Add the strings**
 
 In `src/shared/i18n/locales/en/agents.ts`, after `agentSettings: "Agent settings",` add:
 
@@ -3849,7 +3849,7 @@ In `src/shared/i18n/locales/en/agents.ts`, after `agentSettings: "Agent settings
     "For providers you sign in to (OAuth), connect from Providers with this agent active.",
 ```
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 ```tsx
 // src/renderer/src/components/profile/ProfileModelPicker.test.tsx
@@ -3965,12 +3965,12 @@ describe("ProfileModelPicker", () => {
 });
 ```
 
-- [ ] **Step 3: Run it to verify it fails**
+- [x] **Step 3: Run it to verify it fails**
 
 Run: `npx vitest run src/renderer/src/components/profile/ProfileModelPicker.test.tsx`
 Expected: FAIL — cannot resolve `./ProfileModelPicker`.
 
-- [ ] **Step 4: Implement the picker**
+- [x] **Step 4: Implement the picker**
 
 ```tsx
 // src/renderer/src/components/profile/ProfileModelPicker.tsx
@@ -4118,12 +4118,12 @@ export default function ProfileModelPicker({
 }
 ```
 
-- [ ] **Step 5: Run the picker test to verify it passes**
+- [x] **Step 5: Run the picker test to verify it passes**
 
 Run: `npx vitest run src/renderer/src/components/profile/ProfileModelPicker.test.tsx`
 Expected: PASS, 4 tests.
 
-- [ ] **Step 6: Mount it in the Profile tab and retire the read-only chips**
+- [x] **Step 6: Mount it in the Profile tab and retire the read-only chips**
 
 In `src/renderer/src/components/profile/ProfileModal.tsx`:
 
@@ -4180,12 +4180,12 @@ vi.mock("./ProfileModelPicker", () => ({
 }
 ```
 
-- [ ] **Step 7: Run the profile tests, lint and typecheck**
+- [x] **Step 7: Run the profile tests, lint and typecheck**
 
 Run: `npx vitest run src/renderer/src/components/profile/ && npx eslint src/renderer/src/components/profile/ && npm run typecheck:web`
 Expected: PASS; no unused-import lint errors; typecheck clean.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/renderer/src/components/profile/ src/shared/i18n/locales/en/agents.ts src/renderer/src/assets/main.css docs/superpowers/plans/2026-09-02-memory-per-agent.md
@@ -4204,7 +4204,7 @@ git commit -m "feat(agent-settings): pick this agent's model and provider, with 
 
 **Interfaces:** none. Invoke the `lat-md` skill before writing.
 
-- [ ] **Step 1: Write `lat.md/memory.md`**
+- [x] **Step 1: Write `lat.md/memory.md`**
 
 Every heading has a leading paragraph under 250 characters. Section ids used by the test tags below are `memory#Memory#Tests#<leaf>`; confirm each with `npx --yes lat.md locate "<leaf heading>"` after writing.
 
@@ -4348,7 +4348,7 @@ Saving sends the loaded content as the expectation; on conflict the draft surviv
 Every agent renders with its facts; an unreadable agent is marked without blanking the list; selecting a row opens that agent; no editing affordance exists.
 ````
 
-- [ ] **Step 2: Write `lat.md/agent-settings.md`**
+- [x] **Step 2: Write `lat.md/agent-settings.md`**
 
 ````markdown
 # Agent Settings
@@ -4384,7 +4384,7 @@ Renderer tests mock `useI18n`, the model hook and the picker so they assert pers
 The hook is bound to the given profile id and a selection calls `selectModel` with `persist: true`; a clean health check shows no key field; a `MODEL_KEY_MISSING` issue shows the field and saving writes that key for that agent; a failed check still renders the picker.
 ````
 
-- [ ] **Step 3: Index and cross-reference**
+- [x] **Step 3: Index and cross-reference**
 
 In `lat.md/lat.md`, add two bullets to the list (after `[[mcp-servers]]`):
 
@@ -4399,7 +4399,7 @@ In `lat.md/chat-commands.md:118`, after the sentence ending `so their output rea
 `/memory` prints the active agent's five memory systems — entries, user-profile fill, session counts, provider and vault — matching the inventory in [[memory]].
 ```
 
-- [ ] **Step 4: Tag the tests**
+- [x] **Step 4: Tag the tests**
 
 Add exactly one `// @lat:` comment above the top-level `describe` in each file. Confirm each id with `npx --yes lat.md locate "<leaf heading>"` and use the full id it prints if it differs.
 
@@ -4419,12 +4419,12 @@ Add exactly one `// @lat:` comment above the top-level `describe` in each file. 
 | `src/renderer/src/screens/Memory/Memory.test.tsx` | `// @lat: [[memory#Memory#Tests#Overview rows]]` |
 | `src/renderer/src/components/profile/ProfileModelPicker.test.tsx` | `// @lat: [[agent-settings#Agent Settings#Tests#Model pick persists to the agent]]` |
 
-- [ ] **Step 5: Validate the docs**
+- [x] **Step 5: Validate the docs**
 
 Run: `npx --yes lat.md check`
 Expected: `All checks passed`. A broken source link means a symbol name in the doc does not match the code — fix the doc, not the code. A leading-paragraph error means a heading's first paragraph exceeds 250 characters — shorten it.
 
-- [ ] **Step 6: Full verification**
+- [x] **Step 6: Full verification**
 
 Invoke `superpowers:verification-before-completion`, then:
 
@@ -4466,7 +4466,7 @@ git commit -m "docs: document the five memory systems, write protection, and Age
 
 **Files:** none.
 
-- [ ] **Step 1: Invoke `superpowers:finishing-a-development-branch`**
+- [x] **Step 1: Invoke `superpowers:finishing-a-development-branch`**
 
 Follow it. The expected outcome is a pull request against `main`. Suggested command once the skill has verified the tree:
 
@@ -4494,7 +4494,7 @@ EOF
 )"
 ```
 
-- [ ] **Step 2: Update the Progress table**
+- [x] **Step 2: Update the Progress table**
 
 Set Task 13 to `done` with the PR URL in the Commit column, commit the plan file, and push.
 
@@ -4523,3 +4523,141 @@ _(Task 12, Step 7: one line per item, pass or what was seen.)_
 ### Blockers and notes
 
 _(Anything that stopped a task, or was noticed and deliberately left alone.)_
+
+### Baseline (Task 0, 2026-09-02)
+
+Recorded on `feat/agent-settings-memory` at `25d1fc3` + the lockfile commit.
+
+- `npm run typecheck`: clean.
+- `npx vitest run`: **2 files / 7 tests failed** — `tests/gateway-restart.test.ts`
+  and `tests/terminal-launcher.test.ts`. Everything else passed (1906 passed,
+  3 skipped). These two are the handover's known pre-existing failures.
+- A first full run under load also failed `src/renderer/src/components/AgentMarkdown.test.tsx`
+  on a 5s timeout; it passes in isolation and did not recur. Load flake, not a baseline failure.
+
+### Task 4 — test adapted to the repo's sqlite mock
+
+The plan's Task 4 test seeded a real `better-sqlite3` database. That cannot run
+here: `postinstall` runs `electron-builder install-app-deps`, so the native
+binding is built for Electron's ABI (NODE_MODULE_VERSION 140) and vitest, on
+plain Node (127), refuses to load it. Every other db-touching test in the repo
+mocks the module for the same reason (`tests/db.test.ts`).
+
+The test now mocks `better-sqlite3` with a constructible fake serving one row
+per database path, and keeps all three original assertions plus one that the
+handle is opened `{ readonly: true }` and closed. Note for later tasks: a
+vitest 4 mock must use the `function` keyword to be constructible.
+
+### Full verification (Task 12, Step 6)
+
+Run on `feat/agent-settings-memory` after Task 11, before the app check.
+
+- `npm run typecheck`: clean (node + web).
+- `npx --yes lat.md check`: All checks passed.
+- `npx eslint --cache .`: 1 error, 38 warnings — the error is
+  `.remember/tmp/last-ndc.ts:1`, a Remember-plugin scratch file, not this
+  branch's code. Every file this branch touches lints clean (prettier warnings
+  auto-fixed with `eslint --fix`).
+- `npx vitest run`: 3 files / 6 tests failed, all outside this work —
+  `tests/gateway-restart.test.ts` (4), `tests/terminal-launcher.test.ts` (1) from
+  the recorded baseline, plus `AgentMarkdown.test.tsx` on its 5s timeout under
+  load (passes in isolation). 1964 passed. The 69 tests across this branch's
+  16 touched suites all pass.
+
+### App check (Task 12, Step 7) — needs CSJ
+
+The dev build is running (`npm run dev`, log at the session scratchpad
+`dev.log`); the window opens at 730,239 1100x850 on the second display.
+
+Automated clicking was abandoned: `System Events … click at {x,y}` does not
+raise the Electron window first, so the two clicks landed in whatever app held
+focus (a screenshot showed another application). Driving the user's desktop
+blind is not worth the risk of clicking something destructive, so the six
+visual checks are left for CSJ:
+
+1. Memory screen lists every agent, `web-wizard-agent` as an empty (not failed) row.
+2. Selecting an agent opens Agent Settings at the Memory tab with five rows.
+3. User Profile shows no session count; Session Search does.
+4. A near-full store reads "At capacity…" in a neutral colour.
+5. Profile tab shows the model picker; picking a model for a non-active agent
+   changes that agent's `config.yaml`.
+6. Vault row: Choose folder writes `OBSIDIAN_VAULT_PATH` to that agent's `.env`.
+
+Everything else in Task 12 is verified: `lat.md check` passes, typecheck is
+clean, and the only failing tests are the recorded baseline plus one known
+load-flake.
+
+#### Results — 2026-09-04, with CSJ at the keyboard
+
+Four of six pass; two were not exercised and stay open.
+
+1. **Pass.** Closing the modal returns to the overview with all three agents
+   listed (`default`, `myrtle`, `web-wizard-agent`) — note there are three
+   profiles, not two.
+2. **Pass.** Selecting an agent opens Agent Settings at the Memory tab with
+   all five systems present. CSJ judged the layout wrong, not broken; see the
+   follow-up round below.
+3. **Pass.** User Profile shows chars only; Session Search shows
+   `9 sessions · 294 messages`.
+4. **Pass.** User Profile at 97% reads "At capacity — the agent consolidates
+   on the next write" in neutral blue.
+5. **Not verified.** CSJ picked a model with Agent Settings open on `default`,
+   the *active* profile, so the write went to `~/.hermes/config.yaml`. The
+   picker works; the **non-active** path is what this check was for and
+   `myrtle/config.yaml` is unchanged. Still open.
+6. **Not run.** The vault pane renders and the dialog opens; no folder was
+   chosen, so `OBSIDIAN_VAULT_PATH` was never written. Still open.
+
+**Side effect worth knowing:** the model pick left `default` on `anthropic`
+with no `ANTHROPIC_API_KEY`, so `checkInstall().hasApiKey` went false and the
+next launch routed to the Setup screen (`App.tsx:74-82`). Not a startup bug —
+`checkInstall` found the install and `startGatewayWithRecovery` still starts
+the gateway on demand. But the Setup screen never says why it appeared, which
+is a real gap: a working install that switches to a keyless provider is
+dropped into onboarding with no explanation and no way back. Not built.
+
+### Follow-up round (2026-09-04) — CSJ's review of the Memory tab
+
+Committed as `9254afb`, after Task 12 and before Task 13.
+
+Eight changes from looking at the real screens: the provider row became
+"External memory providers" with the Obsidian vault folded into it; "User
+Profile" became "<Agent>'s memory of you"; "Session Search" became "Session
+memory"; every card starts collapsed; "Built-in only"/"Not linked" became
+"None connected"/"No vault linked"; the model dropdown no longer opens upward
+into the modal's top edge; the Profile tab gained a working-folder picker for
+the existing `terminal.cwd` key; and the overview cards gained a run-state dot
+backed by a new [[src/main/agent-status.ts]] that disbelieves a stale
+`running` record whose pid is gone.
+
+Verified at `9254afb`: typecheck clean, `lat.md check` passes, the 12 touched
+suites pass (47 tests), and the full run is 1976 passed with 5 failures, all in
+`tests/gateway-restart.test.ts` and `tests/terminal-launcher.test.ts` from the
+recorded baseline.
+
+Left undone deliberately: the 11 non-English locales still carry the old
+wording for the renamed keys, which is the pre-existing locale debt, not new.
+
+### Task 13 (2026-09-04) — pushed and opened as PR #2
+
+https://github.com/Stoff73/hermes-desktop/pull/2, 21 commits against `main`.
+
+The PR body was rewritten rather than used verbatim from this plan: seven
+commits landed after Task 12 covering the Memory tab review round and a chain
+of config bugs (the `openai-codex` base_url, Setup finishing with no model,
+two dead calls to action, the picker opening on All, readiness ignoring the
+session model, and a persisted model notifying nobody). CSJ chose one PR over
+splitting them, since the commits are interleaved on this branch.
+
+Test suite verified against `main` before pushing rather than assumed:
+`tests/gateway-restart.test.ts` (6) and `tests/terminal-launcher.test.ts` (1)
+fail identically on `main`. `AgentMarkdown.test.tsx` failed one isolated run
+while the Electron dev server was up (14.6s vs the usual 5.4s) and then passed
+3/3 — the recorded load-sensitive timeout, not a regression.
+
+App check 5 now passes: Agent Settings wrote `myrtle/config.yaml` with the
+model, provider and correct base_url. Item 6 (vault folder write) remains the
+only unexercised check and is called out unticked in the PR.
+
+Note for whoever merges: local `main` carries one unpushed commit, `8e939c0`
+(the lockfile refresh), so the PR diff includes it.

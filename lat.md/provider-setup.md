@@ -20,6 +20,12 @@ DashScope API-key traffic uses the agent's native `alibaba` provider. The agent 
 
 DashScope users choose between the mainland China and international endpoints during first-run setup ([[src/renderer/src/screens/Setup/Setup.tsx]]). Both choices keep `provider: alibaba`; only `base_url` changes. The **Setup picker** defaults to mainland China (`DEFAULT_DASHSCOPE_BASE_URL`) and always writes `base_url` explicitly, but the **canonical registry** ([[src/main/provider-registry.ts]] `PROVIDER_BASE_URLS`) stays on the international endpoint because it mirrors the agent's own default and is what `setModelConfig` fills into an empty `base_url` — a CN value there would silently repoint existing international users. The Providers tab has no endpoint field anymore (the active model is picked from configured providers), so `confirmModelPick` preserves the current `base_url` when re-picking an `alibaba` model — dropping it to empty would let the canonical fill flip a mainland user to the intl endpoint.
 
+### Codex is in the canonical registry despite being OAuth-only
+
+`openai-codex` carries `https://chatgpt.com/backend-api/codex` in `PROVIDER_BASE_URLS` even though that endpoint is not OpenAI-compatible.
+
+The table's other entries are there because their `/v1/chat/completions` is trusted; this one is there because `setModelConfig` fills an empty `base_url` from it, and every caller that selects Codex passes empty: the Setup tile has `baseUrl: ""`, and `effectiveOverrideBaseUrl` in [[src/renderer/src/screens/Chat/hooks/useModelConfig.ts]] returns `""` for every provider but `custom` and `ollama-cloud`. With no canonical entry the *previous* provider's URL survived, so picking Codex after Anthropic wrote `provider: openai-codex` pointing at `api.anthropic.com`. The entry says nothing about transport.
+
 ## OpenAI-compatible endpoints route through Local
 
 Endpoints the agent does not natively support (Groq, DeepSeek, Together, Fireworks, Cerebras, AtlasCloud, Mistral, AIML, …) are offered as `LOCAL_PRESETS` chips under the `local` card, not as top-level cards.
@@ -186,3 +192,22 @@ Each card's logo is resolved by [[src/renderer/src/components/common/BrandLogo.t
 `detectBrand` matches the provider/model string to a `BrandKey`, and `matchTheme` flattens every logo to a single white/black tint so colored and `currentColor` SVGs render uniformly in the grid's logo tiles.
 
 The Local/Remote preset chips are also branded: each renders the same `BrandLogo` (by preset id) to the left of its name in a row. `llama.cpp` is mapped off the Meta logo to the generic API mark (the `/llama/` substring would otherwise tag it, and Ollama, as Meta); any preset without a bundled logo falls back to the generic mark.
+
+## Getting from a broken config back to a working one
+
+Two banners tell you the config is wrong, and both had a call to action that did nothing when clicked.
+
+The composer's readiness banner ([[src/renderer/src/screens/Chat/ChatInput.tsx]]) rendered its fix hint — "Choose a model in Models →" — as a plain `<span>`. It read as a link and was inert. It is now a button for the locations that have a screen (`providers` and `models` both land on Providers, where the active model is picked; `gateway` on the Gateway tab), dispatching the `navigation:goto` event Layout already listens for, so no props thread through Chat. `setup` has no in-app screen and stays plain text rather than becoming a link to nowhere.
+
+Separately, [[src/renderer/src/components/ConfigHealthBanner.tsx]]'s "Show details" passed the handler straight to `onClick`, so React handed the click event to `openSettings` as its `section` argument and `resolveSection` threw on `MouseEvent.trim`. The click is now wrapped, and `resolveSection` guards the type rather than only the value.
+
+Wrapping it only exposed the next problem: the Diagnose report has no nav entry of its own — [[src/renderer/src/screens/Settings/ConfigHealth.tsx#ConfigHealth]] renders at the top of the About pane — so calling with no argument resolved to the default pane, Appearance, and "Show details" opened Settings showing nothing about the problem. The banner names `about` explicitly.
+
+### Readiness fix link navigates
+
+A "choose a model" fix opens Providers and a gateway fix opens the Gateway tab, both through `navigation:goto`; a fix location with no screen renders as text with no button.
+
+### Diagnose link opens the pane showing the issues
+
+"Show details" names the About section rather than passing the click event or nothing at all; `resolveSection` returns the default pane for a non-string either way.
+

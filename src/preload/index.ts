@@ -255,9 +255,13 @@ const hermesAPI = {
 
   setEnv: (key: string, value: string, profile?: string): Promise<boolean> =>
     ipcRenderer.invoke("set-env", key, value, profile),
+  removeEnv: (key: string, profile?: string): Promise<boolean> =>
+    ipcRenderer.invoke("remove-env", key, profile),
 
   validateChatReadiness: (
     profile?: string,
+    /** The chat picker's session selection, which persists nothing. */
+    override?: { provider: string; model: string; baseUrl: string },
   ): Promise<{
     ok: boolean;
     code?:
@@ -269,7 +273,7 @@ const hermesAPI = {
     message?: string;
     fixLocation?: "providers" | "models" | "gateway" | "setup";
     expectedEnvKey?: string;
-  }> => ipcRenderer.invoke("validate-chat-readiness", profile),
+  }> => ipcRenderer.invoke("validate-chat-readiness", profile, override),
 
   getConfigHealth: (profile?: string): Promise<unknown> =>
     ipcRenderer.invoke("get-config-health", profile),
@@ -1027,29 +1031,84 @@ const hermesAPI = {
   readMemory: (
     profile?: string,
   ): Promise<{
-    memory: { content: string; exists: boolean; lastModified: number | null };
-    user: { content: string; exists: boolean; lastModified: number | null };
-    stats: { totalSessions: number; totalMessages: number };
+    memory: {
+      content: string;
+      exists: boolean;
+      lastModified: number | null;
+      entries: { index: number; content: string }[];
+      charCount: number;
+      charLimit: number;
+    };
+    user: {
+      content: string;
+      exists: boolean;
+      lastModified: number | null;
+      charCount: number;
+      charLimit: number;
+    };
+    sessions: {
+      totalSessions: number;
+      totalMessages: number;
+      lastSessionAt: number | null;
+      available: boolean;
+    };
+    provider: { active: string | null; installed: boolean };
+    vault: { path: string | null; exists: boolean };
   }> => ipcRenderer.invoke("read-memory", profile),
+  readAllAgentsMemory: (): Promise<
+    Array<{
+      id: string;
+      name: string;
+      isActive: boolean;
+      color?: string;
+      avatar?: string | null;
+      memoryChars: number;
+      memoryLimit: number;
+      memoryEntries: number;
+      userChars: number;
+      userLimit: number;
+      totalSessions: number;
+      lastSessionAt: number | null;
+      provider: string | null;
+      vaultLinked: boolean;
+      available: boolean;
+      status: {
+        state: "running" | "stopped" | "unknown";
+        issue: string | null;
+      };
+    }>
+  > => ipcRenderer.invoke("read-all-agents-memory"),
 
   addMemoryEntry: (
     content: string,
     profile?: string,
-  ): Promise<{ success: boolean; error?: string }> =>
+  ): Promise<{ success: boolean; error?: string; conflict?: boolean }> =>
     ipcRenderer.invoke("add-memory-entry", content, profile),
   updateMemoryEntry: (
     index: number,
     content: string,
     profile?: string,
-  ): Promise<{ success: boolean; error?: string }> =>
-    ipcRenderer.invoke("update-memory-entry", index, content, profile),
-  removeMemoryEntry: (index: number, profile?: string): Promise<boolean> =>
-    ipcRenderer.invoke("remove-memory-entry", index, profile),
+    expected?: string,
+  ): Promise<{ success: boolean; error?: string; conflict?: boolean }> =>
+    ipcRenderer.invoke(
+      "update-memory-entry",
+      index,
+      content,
+      profile,
+      expected,
+    ),
+  removeMemoryEntry: (
+    index: number,
+    profile?: string,
+    expected?: string,
+  ): Promise<{ success: boolean; error?: string; conflict?: boolean }> =>
+    ipcRenderer.invoke("remove-memory-entry", index, profile, expected),
   writeUserProfile: (
     content: string,
     profile?: string,
-  ): Promise<{ success: boolean; error?: string }> =>
-    ipcRenderer.invoke("write-user-profile", content, profile),
+    expected?: string,
+  ): Promise<{ success: boolean; error?: string; conflict?: boolean }> =>
+    ipcRenderer.invoke("write-user-profile", content, profile, expected),
 
   // Soul
   readSoul: (profile?: string): Promise<string> =>

@@ -401,7 +401,13 @@ function Chat({
     let cancelled = false;
     (async (): Promise<void> => {
       try {
-        const r = await window.hermesAPI.validateChatReadiness(profile);
+        // The picker persists nothing, so config.yaml alone would keep
+        // reporting "No model selected" at someone who just picked one and
+        // can see it in the toolbar.
+        const r = await window.hermesAPI.validateChatReadiness(
+          profile,
+          sessionModelOverride,
+        );
         if (!cancelled) setReadiness(r);
       } catch {
         // Fail open on IPC error — never block Send on validation failure
@@ -411,7 +417,13 @@ function Chat({
     return (): void => {
       cancelled = true;
     };
-  }, [profile, chatCurrentModel, chatCurrentProvider, chatCurrentBaseUrl]);
+  }, [
+    profile,
+    chatCurrentModel,
+    chatCurrentProvider,
+    chatCurrentBaseUrl,
+    sessionModelOverride,
+  ]);
 
   // Authoritative context-window size for the active model, resolved from the
   // provider's /models catalogue (issue #597). Null until/unless the provider

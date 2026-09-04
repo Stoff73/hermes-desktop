@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  Brain,
   Database,
-  Plug,
   Pencil,
   Puzzle,
   Refresh,
@@ -19,11 +17,16 @@ import { PROFILE_COLORS } from "../../../../shared/profileColors";
 import { fileToAvatarDataUrl } from "../../utils/imageResize";
 import { useI18n } from "../useI18n";
 import Soul from "../../screens/Soul/Soul";
-import { MemoryEntries } from "../../screens/Memory/MemoryEntries";
-import type { MemoryData } from "../../screens/Memory/types";
+import { MemorySystems } from "../../screens/Memory/MemorySystems";
+import type {
+  MemoryData,
+  MemoryProviderInfo,
+} from "../../screens/Memory/types";
 import { AppModal, AppModalTitle } from "../modal/AppModal";
 import ProfileWalletPane from "./ProfileWalletPane";
 import ProfileSyncPane from "./ProfileSyncPane";
+import ProfileModelPicker from "./ProfileModelPicker";
+import ProfileWorkFolder from "./ProfileWorkFolder";
 import { OrbLoader } from "../OrbLoader";
 import type { ProfileSection } from "./ProfileModalContext";
 
@@ -107,6 +110,9 @@ export default function ProfileModal({
   }, [open, initialSection]);
   const [error, setError] = useState("");
   const [memoryData, setMemoryData] = useState<MemoryData | null>(null);
+  const [memoryProviders, setMemoryProviders] = useState<MemoryProviderInfo[]>(
+    [],
+  );
   const [memoryLoading, setMemoryLoading] = useState(false);
   const [memoryError, setMemoryError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -147,8 +153,14 @@ export default function ProfileModal({
     setMemoryLoading(true);
     setMemoryError("");
     try {
-      const data = await window.hermesAPI.readMemory(profile.id);
+      // MemorySystems requires the providers list: an empty one makes the
+      // provider pane say "No memory providers found" for every agent.
+      const [data, provs] = await Promise.all([
+        window.hermesAPI.readMemory(profile.id),
+        window.hermesAPI.discoverMemoryProviders(profile.id),
+      ]);
       setMemoryData(data as MemoryData);
+      setMemoryProviders(provs);
     } catch {
       setMemoryError(t("memory.loadFailed"));
     } finally {
@@ -262,12 +274,6 @@ export default function ProfileModal({
     }
   }
 
-  function providerLabel(provider: string): string {
-    if (!provider || provider === "auto") return t("agents.auto");
-    if (provider === "custom") return t("agents.local");
-    return provider.charAt(0).toUpperCase() + provider.slice(1);
-  }
-
   const profileChips: ReadonlyArray<{
     key: string;
     value: string;
@@ -275,18 +281,6 @@ export default function ProfileModal({
     state?: "on" | "off";
   }> = profile
     ? [
-        {
-          key: "provider",
-          value: providerLabel(profile.provider),
-          Icon: Plug,
-        },
-        {
-          key: "model",
-          value: profile.model
-            ? profile.model.split("/").pop() || profile.model
-            : t("agents.noModel"),
-          Icon: Brain,
-        },
         {
           key: "skills",
           value: t("agents.skillsCount", { count: profile.skillCount }),
@@ -316,6 +310,9 @@ export default function ProfileModal({
       labelledBy="profile-modal-title"
     >
       <aside className="profile-modal-sidebar">
+        <span className="profile-modal-kicker">
+          {t("agents.agentSettings")}
+        </span>
         <div className="profile-modal-sidebar-head">
           {profile && (
             <ProfileAvatar
@@ -464,6 +461,10 @@ export default function ProfileModal({
                   ))}
                 </div>
 
+                <ProfileModelPicker profile={profile.id} />
+
+                <ProfileWorkFolder profile={profile.id} />
+
                 <div className="profile-modal-section">
                   <span className="profile-modal-label">
                     {t("agents.color")}
@@ -507,9 +508,11 @@ export default function ProfileModal({
                     <OrbLoader state="searching" size={64} />
                   </div>
                 ) : memoryData ? (
-                  <MemoryEntries
-                    entries={memoryData.memory.entries}
+                  <MemorySystems
+                    data={memoryData}
                     profile={profile.id}
+                    agentName={profile.name}
+                    providers={memoryProviders}
                     onRefresh={loadMemoryData}
                   />
                 ) : memoryError ? (
