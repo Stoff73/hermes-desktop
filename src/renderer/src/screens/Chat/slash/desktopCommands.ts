@@ -1,4 +1,5 @@
 import type { ModelCommandFormatter, SlashCommandDefinition } from "./types";
+import { OPEN_MODEL_PICKER_EVENT } from "../ModelPicker";
 
 const formatExplainSelection: ModelCommandFormatter = async (input) => ({
   content: [
@@ -58,7 +59,7 @@ export const DESKTOP_SLASH_COMMANDS: SlashCommandDefinition[] = [
     allowWhileBusy: true,
     uiAction: true,
     execute: async () => {
-      window.dispatchEvent(new CustomEvent("model-picker:open"));
+      window.dispatchEvent(new CustomEvent(OPEN_MODEL_PICKER_EVENT));
       return { type: "handled" };
     },
   },

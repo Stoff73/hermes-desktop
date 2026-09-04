@@ -41,3 +41,14 @@ The upstream desktop model applies the session switch on the active gateway sess
 Attachment turns must not be forced through the CLI override fallback because the CLI path cannot carry multimodal input.
 
 [[src/main/hermes.ts#sendMessageViaCli]] can inline text-file attachments but ignores images, while the gateway/API path preserves image parts and path refs through [[src/main/hermes.ts#buildUserContent]]. When a session override is active and the user sends attachments, [[src/main/hermes.ts#shouldForceCliForSessionOverride]] leaves the turn eligible for the dashboard/gateway or API transport instead of silently dropping media.
+
+## The picker opens on the provider you are using
+
+Opening the model picker filters the list to the configured provider's brand rather than showing every brand at once.
+
+Someone who set up Anthropic wants Anthropic's models; the All rail entry is one click away when they want the rest. The brand falls back to All when the current provider has no rail entry — a custom endpoint, or nothing configured yet — because filtering to an absent brand would show an empty picker. The same applies when the picker is opened externally through `model-picker:open`, which the `/model` command and the composer's readiness banner both dispatch.
+
+### Picker opens on the configured provider
+
+The list and the active rail entry follow `currentProvider` on open; an unknown provider falls back to All; an external open request lands on the same filtered view.
+

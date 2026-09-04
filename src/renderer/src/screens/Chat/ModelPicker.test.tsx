@@ -20,7 +20,7 @@ vi.mock("../../components/common/BrandLogo", () => ({
   default: () => null,
 }));
 
-import { ModelPicker } from "./ModelPicker";
+import { ModelPicker, OPEN_MODEL_PICKER_EVENT } from "./ModelPicker";
 import type { ModelGroup } from "./types";
 
 const groups: ModelGroup[] = [
@@ -96,6 +96,13 @@ function openPicker(container: HTMLElement): HTMLElement {
   return container.querySelector(".chat-model-dropdown") as HTMLElement;
 }
 
+/** The rail's first entry is All; the picker now opens on the current brand. */
+function showAllBrands(dropdown: HTMLElement): void {
+  fireEvent.click(
+    dropdown.querySelectorAll(".chat-model-rail-item")[0] as HTMLElement,
+  );
+}
+
 describe("ModelPicker", () => {
   // ── initial render ──────────────────────────────────────────────
   it("renders the display model name in the trigger button", () => {
@@ -148,7 +155,7 @@ describe("ModelPicker", () => {
     const inactive = renderPicker({ active: false });
 
     act(() => {
-      window.dispatchEvent(new CustomEvent("model-picker:open"));
+      window.dispatchEvent(new CustomEvent(OPEN_MODEL_PICKER_EVENT));
     });
 
     expect(
@@ -160,12 +167,15 @@ describe("ModelPicker", () => {
   });
 
   // ── model list rendering ────────────────────────────────────────
-  it("renders all provider groups and their models", () => {
+  it("rails every provider, and lists them all once All is picked", () => {
     const { container } = renderPicker();
     const dropdown = openPicker(container);
 
+    // The rail always offers every provider, whatever the list is filtered to.
     expect(within(dropdown).getByText("providers.openrouter")).toBeTruthy();
     expect(within(dropdown).getByText("providers.ollama")).toBeTruthy();
+
+    showAllBrands(dropdown);
     expect(within(dropdown).getByText("OWL Alpha")).toBeTruthy();
     expect(within(dropdown).getByText("OWL Beta")).toBeTruthy();
     expect(within(dropdown).getByText("Llama 3")).toBeTruthy();
@@ -211,6 +221,7 @@ describe("ModelPicker", () => {
   it("calls onSelectModel with correct args when a model is clicked", () => {
     const { container, onSelectModel } = renderPicker();
     const dropdown = openPicker(container);
+    showAllBrands(dropdown);
 
     fireEvent.click(within(dropdown).getByText("Llama 3"));
 
@@ -256,6 +267,7 @@ describe("ModelPicker", () => {
   it("shows all models when search is cleared", () => {
     const { container } = renderPicker();
     const dropdown = openPicker(container);
+    showAllBrands(dropdown);
     const search = within(dropdown).getByPlaceholderText("chat.searchModels");
 
     fireEvent.change(search, { target: { value: "beta" } });
@@ -339,5 +351,53 @@ describe("ModelPicker", () => {
 
     expect(within(dropdown).queryByText("OWL Alpha")).toBeNull();
     expect(within(dropdown).queryByText("Llama 3")).toBeNull();
+  });
+
+  // @lat: [[model-selection#Session model override#The picker opens on the provider you are using#Picker opens on the configured provider]]
+  it("opens filtered to the provider in use, not All", () => {
+    const { container } = renderPicker({
+      currentProvider: "ollama",
+      currentModel: "llama3",
+    });
+    const dropdown = openPicker(container);
+    // Only the current provider's models are listed.
+    const titles = [...dropdown.querySelectorAll(".chat-model-row-title")].map(
+      (n) => n.textContent,
+    );
+    expect(titles).toEqual(["Llama 3"]);
+    // And its rail entry is the active one.
+    const active = dropdown.querySelector(".chat-model-rail-item.active");
+    expect(active?.textContent).toContain("providers.ollama");
+  });
+
+  it("falls back to All when the configured provider has no rail entry", () => {
+    // A custom endpoint, or nothing configured yet — filtering to a brand
+    // that is not in the list would show an empty picker.
+    const { container } = renderPicker({ currentProvider: "custom" });
+    const dropdown = openPicker(container);
+    const titles = [...dropdown.querySelectorAll(".chat-model-row-title")].map(
+      (n) => n.textContent,
+    );
+    expect(titles).toEqual(["OWL Alpha", "OWL Beta", "Llama 3"]);
+  });
+
+  it("opens on the current provider when asked externally, not on All", () => {
+    // Same event the /model command already used; the readiness banner now
+    // dispatches it too.
+    const { container } = renderPicker({
+      currentProvider: "ollama",
+      currentModel: "llama3",
+    });
+    act(() => {
+      window.dispatchEvent(new CustomEvent(OPEN_MODEL_PICKER_EVENT));
+    });
+    const dropdown = container.querySelector(
+      ".chat-model-dropdown",
+    ) as HTMLElement;
+    expect(dropdown).not.toBeNull();
+    const titles = [...dropdown.querySelectorAll(".chat-model-row-title")].map(
+      (n) => n.textContent,
+    );
+    expect(titles).toEqual(["Llama 3"]);
   });
 });

@@ -4,6 +4,12 @@ import { useI18n } from "../../components/useI18n";
 import BrandLogo from "../../components/common/BrandLogo";
 import type { ModelGroup } from "./types";
 
+/**
+ * Opens this picker in place. Dispatched by the `/model` slash command and by
+ * the composer's readiness banner.
+ */
+export const OPEN_MODEL_PICKER_EVENT = "model-picker:open";
+
 interface ModelPickerProps {
   active?: boolean;
   currentModel: string;
@@ -56,8 +62,10 @@ export const ModelPicker = memo(function ModelPicker({
   }, [isOpen]);
 
   const onOpenRef = useRef(onOpen);
+  const currentProviderRef = useRef(currentProvider);
   useEffect(() => {
     onOpenRef.current = onOpen;
+    currentProviderRef.current = currentProvider;
   });
 
   useEffect(() => {
@@ -66,11 +74,11 @@ export const ModelPicker = memo(function ModelPicker({
       onOpenRef.current();
       setIsOpen(true);
       setSearchInput("");
-      setSelectedBrand(null);
+      setSelectedBrand(currentProviderRef.current || null);
     }
-    window.addEventListener("model-picker:open", handleExternalOpen);
+    window.addEventListener(OPEN_MODEL_PICKER_EVENT, handleExternalOpen);
     return () =>
-      window.removeEventListener("model-picker:open", handleExternalOpen);
+      window.removeEventListener(OPEN_MODEL_PICKER_EVENT, handleExternalOpen);
   }, [active]);
 
   const searchQuery = searchInput.trim().toLowerCase();
@@ -133,7 +141,11 @@ export const ModelPicker = memo(function ModelPicker({
     if (!isOpen) onOpen();
     setIsOpen((v) => !v);
     setSearchInput("");
-    setSelectedBrand(null);
+    // Open on the provider you are actually using rather than All — a user
+    // who configured Anthropic wants Anthropic's models, not every brand.
+    // The activeBrand guard above falls back to All when the current provider
+    // has no rail entry (nothing configured yet, or a custom endpoint).
+    setSelectedBrand(currentProvider || null);
   }
 
   function select(provider: string, model: string, baseUrl: string): void {

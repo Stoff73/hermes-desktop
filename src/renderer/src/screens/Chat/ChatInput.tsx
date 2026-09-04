@@ -29,6 +29,7 @@ import {
 } from "./attachmentUtils";
 import { AttachmentChip } from "../../components/AttachmentChip";
 import { ContextGauge, type ContextUsage } from "./ContextGauge";
+import { OPEN_MODEL_PICKER_EVENT } from "./ModelPicker";
 import type { Attachment } from "../../../../shared/attachments";
 
 export interface ChatInputHandle {
@@ -49,19 +50,35 @@ export interface ChatInputReadiness {
 }
 
 /**
- * Which screen each readiness fixLocation sends you to. "models" lands on
- * Providers because that is where the active model is picked. "setup" has no
- * in-app screen, so it stays plain text rather than a link that goes nowhere.
+ * Which screen each readiness fixLocation sends you to.
+ *
+ * "models" is deliberately absent: sending someone to the Providers overview
+ * to pick a model is a detour past the picker sitting in this very composer.
+ * It opens that picker instead, already filtered to their provider.
+ * "setup" has no in-app screen, so it stays plain text rather than a link
+ * that goes nowhere.
  */
 const READINESS_FIX_VIEW: Record<string, string> = {
   providers: "providers",
-  models: "providers",
   gateway: "gateway",
 };
 
 /** Layout owns the view state and listens for this; see Layout.tsx `goTo`. */
 function goToView(view: string): void {
   window.dispatchEvent(new CustomEvent("navigation:goto", { detail: view }));
+}
+
+function runReadinessFix(loc: string): void {
+  if (loc === "models") {
+    window.dispatchEvent(new Event(OPEN_MODEL_PICKER_EVENT));
+    return;
+  }
+  goToView(READINESS_FIX_VIEW[loc]);
+}
+
+/** Locations the fix label can actually act on. */
+function isActionableFix(loc: string): boolean {
+  return loc === "models" || Boolean(READINESS_FIX_VIEW[loc]);
 }
 
 interface ChatInputProps {
@@ -644,14 +661,12 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
                 : readiness.message}
             </span>
             {readiness.fixLocation &&
-              (READINESS_FIX_VIEW[readiness.fixLocation] ? (
+              (isActionableFix(readiness.fixLocation) ? (
                 <button
                   type="button"
                   className="chat-readiness-fix is-link"
                   data-testid="chat-readiness-fix"
-                  onClick={() =>
-                    goToView(READINESS_FIX_VIEW[readiness.fixLocation!])
-                  }
+                  onClick={() => runReadinessFix(readiness.fixLocation!)}
                 >
                   {readinessFixLabel(readiness.fixLocation)}
                 </button>

@@ -13,6 +13,7 @@ vi.mock("../../components/useI18n", () => ({
 }));
 
 import { ChatInput } from "./ChatInput";
+import { OPEN_MODEL_PICKER_EVENT } from "./ModelPicker";
 
 afterEach(cleanup);
 
@@ -145,8 +146,21 @@ describe("ChatInput — readiness fix link", () => {
     return seen;
   }
 
-  it("navigates to Providers when the fix is to choose a model", () => {
+  it("opens the composer's own model picker rather than detouring via Providers", () => {
+    const opens: string[] = [];
+    const onOpen = (): void => {
+      opens.push("open");
+    };
+    window.addEventListener(OPEN_MODEL_PICKER_EVENT, onOpen);
     const seen = renderWithReadiness("models");
+    fireEvent.click(screen.getByTestId("chat-readiness-fix"));
+    expect(opens).toEqual(["open"]);
+    expect(seen).toEqual([]);
+    window.removeEventListener(OPEN_MODEL_PICKER_EVENT, onOpen);
+  });
+
+  it("still navigates for a providers fix", () => {
+    const seen = renderWithReadiness("providers");
     fireEvent.click(screen.getByTestId("chat-readiness-fix"));
     expect(seen).toEqual(["providers"]);
   });

@@ -37,3 +37,16 @@ The progress view (`wide`) shows a step + percent header with a progress bar, th
 ## Startup splash
 
 The very first frame on launch is still [[src/renderer/src/screens/SplashScreen/SplashScreen.tsx]], shown by [[src/renderer/src/App.tsx#App]] while `runInstallCheck` runs. It is separate from the onboarding chrome above — see [[main-process]] for its "Switch to local mode" escape hatch.
+
+## Setup cannot finish without a model
+
+The first-run provider screen requires a model, chosen from the provider you just picked.
+
+Setup previously offered a free-text model box marked *optional*, and only for the local and no-key branches — providers that need an API key had no model field at all. Continuing wrote `model.default: ""`, and the app opened straight onto the composer's "No model selected" banner. [[src/renderer/src/screens/Setup/SetupModelField.tsx#SetupModelField]] now renders in all three branches, asks `discoverProviderModels` for that provider's catalog (debounced, because the API key is typed a character at a time) and offers only those models. Continue stays disabled until one is chosen, and switching provider clears the pick, since a model id from one provider means nothing to the next.
+
+Discovery legitimately fails — no key yet, an unreachable custom endpoint, a provider with no catalog endpoint — and a hard requirement plus a failed lookup would be a dead end, so the field degrades to the free-text box it used to be rather than trapping the user.
+
+### Model field is scoped to the provider
+
+The select offers exactly the models discovery returned for the chosen provider and reports a pick to its parent; a failed or rejected lookup falls back to a text input instead of leaving no way to continue.
+

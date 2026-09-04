@@ -36,6 +36,12 @@ export default {
   customApiKeyLabel: "API Key",
   customApiKeyHint: "Required for remote APIs. Leave blank for localhost.",
   defaultModelHint: "Leave blank to use the server's default model",
+  modelLoading: "Finding this provider's models…",
+  modelChoose: "Choose a model",
+  modelScopedHint: "Models available from the provider you picked.",
+  modelUnlistedHint:
+    "This provider doesn't publish a model list — type the model id.",
+  missingModel: "Please choose a model",
   missingApiKey: "Please enter an API key",
   missingServerUrl: "Please enter the server URL",
   saveFailed: "Failed to save configuration",

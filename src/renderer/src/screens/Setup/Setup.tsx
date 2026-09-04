@@ -4,6 +4,7 @@ import { PROVIDERS, LOCAL_PRESETS, DASHSCOPE_ENDPOINTS } from "../../constants";
 import { useI18n } from "../../components/useI18n";
 import VerifyWarningBanner from "../../components/VerifyWarningBanner";
 import BrandLogo from "../../components/common/BrandLogo";
+import SetupModelField from "./SetupModelField";
 import { expectedEnvKeyForUrl } from "../../../../shared/url-key-map";
 
 interface SetupProps {
@@ -31,9 +32,21 @@ function Setup({
   const provider = PROVIDERS.setup.find((p) => p.id === selectedProvider)!;
   const isLocal = selectedProvider === "local";
   const isDashScope = selectedProvider === "alibaba";
+  // Hoisted out of handleContinue: the model field needs the same pair to ask
+  // the provider for its catalog.
+  const configProvider = isLocal ? "custom" : provider.configProvider;
+  const configBaseUrl =
+    isLocal || isDashScope ? baseUrl.trim() : provider.baseUrl;
 
   function applyLocalPreset(presetBaseUrl: string): void {
     setBaseUrl(presetBaseUrl);
+  }
+
+  function pickProvider(id: string): void {
+    setSelectedProvider(id);
+    // A model id from the previous provider means nothing to this one.
+    setModelName("");
+    setError("");
   }
 
   // Setup prefers a LOCAL_PRESETS exact-URL match (so e.g. an LM Studio
@@ -55,6 +68,12 @@ function Setup({
       setError(t("setup.missingServerUrl"));
       return;
     }
+    // Setup used to finish with an empty model, which wrote `default: ""` and
+    // dropped the user straight into the "No model selected" banner.
+    if (!modelName.trim()) {
+      setError(t("setup.missingModel"));
+      return;
+    }
 
     setSaving(true);
     setError("");
@@ -67,10 +86,7 @@ function Setup({
         await window.hermesAPI.setEnv(envKey, apiKey.trim());
       }
 
-      const configProvider = isLocal ? "custom" : provider.configProvider;
-      const configBaseUrl =
-        isLocal || isDashScope ? baseUrl.trim() : provider.baseUrl;
-      const configModel = modelName.trim() || "";
+      const configModel = modelName.trim();
       await window.hermesAPI.setModelConfig(
         configProvider,
         configModel,
@@ -106,11 +122,10 @@ function Setup({
                 aria-pressed={active}
                 className={`setup-provider-card ${active ? "selected" : ""}`}
                 onClick={() => {
-                  setSelectedProvider(p.id);
+                  pickProvider(p.id);
                   if (p.id === "alibaba") {
                     setBaseUrl(p.baseUrl);
                   }
-                  setError("");
                 }}
               >
                 {active && (
@@ -221,22 +236,16 @@ function Setup({
                 {t("setup.customApiKeyHint")}
               </div>
 
-              <label className="setup-label" style={{ marginTop: 16 }}>
-                {t("setup.modelName")}{" "}
-                <span className="setup-label-optional">
-                  {t("common.optional")}
-                </span>
-              </label>
-              <input
-                className="input"
-                type="text"
-                placeholder={t("setup.modelNamePlaceholder")}
+              <SetupModelField
+                provider={configProvider}
+                baseUrl={configBaseUrl}
+                apiKey={apiKey.trim() || undefined}
                 value={modelName}
-                onChange={(e) => setModelName(e.target.value)}
+                onChange={(m) => {
+                  setModelName(m);
+                  setError("");
+                }}
               />
-              <div className="setup-field-hint">
-                {t("setup.defaultModelHint")}
-              </div>
             </>
           ) : provider.needsKey ? (
             <>
@@ -300,6 +309,17 @@ function Setup({
                 {t("setup.noKeyHint")}
                 <ExternalLink size={12} />
               </button>
+
+              <SetupModelField
+                provider={configProvider}
+                baseUrl={configBaseUrl}
+                apiKey={apiKey.trim() || undefined}
+                value={modelName}
+                onChange={(m) => {
+                  setModelName(m);
+                  setError("");
+                }}
+              />
             </>
           ) : (
             <>
@@ -307,24 +327,16 @@ function Setup({
                 {t("setup.noApiKeyRequired", { provider: t(provider.name) })}
               </div>
 
-              <label className="setup-label" style={{ marginTop: 16 }}>
-                {t("setup.modelName")}{" "}
-                <span className="setup-label-optional">
-                  {t("common.optional")}
-                </span>
-              </label>
-              <input
-                className="input"
-                type="text"
-                placeholder={t("setup.modelNamePlaceholder")}
+              <SetupModelField
+                provider={configProvider}
+                baseUrl={configBaseUrl}
+                apiKey={apiKey.trim() || undefined}
                 value={modelName}
-                onChange={(e) => setModelName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleContinue()}
-                autoFocus
+                onChange={(m) => {
+                  setModelName(m);
+                  setError("");
+                }}
               />
-              <div className="setup-field-hint">
-                {t("setup.defaultModelHint")}
-              </div>
             </>
           )}
 
@@ -335,6 +347,7 @@ function Setup({
             onClick={handleContinue}
             disabled={
               saving ||
+              !modelName.trim() ||
               (provider.needsKey && !apiKey.trim()) ||
               ((isLocal || isDashScope) && !baseUrl.trim())
             }
