@@ -52,3 +52,13 @@ Someone who set up Anthropic wants Anthropic's models; the All rail entry is one
 
 The list and the active rail entry follow `currentProvider` on open; an unknown provider falls back to All; an external open request lands on the same filtered view.
 
+## Readiness follows the session model
+
+The pre-send readiness check is given the chat picker's session selection, not just what is on disk.
+
+The picker calls `selectModel` with `persist: false` by design, so `config.yaml` is untouched. [[src/main/validation.ts#validateChatReadiness]] read only `getModelConfig`, so a user who picked a model, watched it appear in the composer toolbar, and had an empty `model.default` on disk kept being told "No model selected" with no way to clear it. It now takes the override and checks that wholesale rather than silencing the one code — overriding to a provider whose key is missing still warns, and warns about the right key. Chat re-runs the check when the override changes.
+
+### Session override satisfies readiness
+
+An empty persisted model with a session override reads as ready; the override's own provider is what the key check is run against, so switching to an unconfigured provider still reports its missing key.
+

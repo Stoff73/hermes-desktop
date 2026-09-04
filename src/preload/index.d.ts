@@ -297,7 +297,10 @@ interface HermesAPI {
   getEnv: (profile?: string) => Promise<Record<string, string>>;
   setEnv: (key: string, value: string, profile?: string) => Promise<boolean>;
   removeEnv: (key: string, profile?: string) => Promise<boolean>;
-  validateChatReadiness: (profile?: string) => Promise<{
+  validateChatReadiness: (
+    profile?: string,
+    override?: { provider: string; model: string; baseUrl: string },
+  ) => Promise<{
     ok: boolean;
     code?:
       | "NO_ACTIVE_MODEL"
@@ -785,7 +788,10 @@ interface HermesAPI {
       provider: string | null;
       vaultLinked: boolean;
       available: boolean;
-      status: { state: "running" | "stopped" | "unknown"; issue: string | null };
+      status: {
+        state: "running" | "stopped" | "unknown";
+        issue: string | null;
+      };
     }>
   >;
 

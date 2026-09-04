@@ -201,11 +201,13 @@ The composer's readiness banner ([[src/renderer/src/screens/Chat/ChatInput.tsx]]
 
 Separately, [[src/renderer/src/components/ConfigHealthBanner.tsx]]'s "Show details" passed the handler straight to `onClick`, so React handed the click event to `openSettings` as its `section` argument and `resolveSection` threw on `MouseEvent.trim`. The click is now wrapped, and `resolveSection` guards the type rather than only the value.
 
+Wrapping it only exposed the next problem: the Diagnose report has no nav entry of its own — [[src/renderer/src/screens/Settings/ConfigHealth.tsx#ConfigHealth]] renders at the top of the About pane — so calling with no argument resolved to the default pane, Appearance, and "Show details" opened Settings showing nothing about the problem. The banner names `about` explicitly.
+
 ### Readiness fix link navigates
 
 A "choose a model" fix opens Providers and a gateway fix opens the Gateway tab, both through `navigation:goto`; a fix location with no screen renders as text with no button.
 
-### Diagnose link passes no section
+### Diagnose link opens the pane showing the issues
 
-"Show details" calls the handler with no arguments, so the click event never reaches `resolveSection`, which itself returns the default pane for a non-string.
+"Show details" names the About section rather than passing the click event or nothing at all; `resolveSection` returns the default pane for a non-string either way.
 

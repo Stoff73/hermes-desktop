@@ -260,6 +260,8 @@ const hermesAPI = {
 
   validateChatReadiness: (
     profile?: string,
+    /** The chat picker's session selection, which persists nothing. */
+    override?: { provider: string; model: string; baseUrl: string },
   ): Promise<{
     ok: boolean;
     code?:
@@ -271,7 +273,7 @@ const hermesAPI = {
     message?: string;
     fixLocation?: "providers" | "models" | "gateway" | "setup";
     expectedEnvKey?: string;
-  }> => ipcRenderer.invoke("validate-chat-readiness", profile),
+  }> => ipcRenderer.invoke("validate-chat-readiness", profile, override),
 
   getConfigHealth: (profile?: string): Promise<unknown> =>
     ipcRenderer.invoke("get-config-health", profile),

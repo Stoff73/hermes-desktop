@@ -102,8 +102,8 @@ describe("ConfigHealthBanner", () => {
     expect(screen.getByTestId("config-health-banner")).toBeTruthy();
   });
 
-  // @lat: [[provider-setup#Provider setup#Getting from a broken config back to a working one#Diagnose link passes no section]]
-  it("opens Diagnose with no section rather than handing it the click event", async () => {
+  // @lat: [[provider-setup#Provider setup#Getting from a broken config back to a working one#Diagnose link opens the pane showing the issues]]
+  it("opens Settings at the pane that actually shows the issues", async () => {
     const onOpenDiagnose = vi.fn();
     render(
       <ConfigHealthBanner profile="default" onOpenDiagnose={onOpenDiagnose} />,
@@ -113,8 +113,10 @@ describe("ConfigHealthBanner", () => {
     fireEvent.click(screen.getByText("diagnose.banner.showDetails"));
 
     // Passing the handler straight to onClick used to send a MouseEvent as
-    // `section`, which resolveSection called .trim() on and threw.
+    // `section`, which resolveSection called .trim() on and threw. Naming the
+    // section matters too: Diagnose has no nav entry, so no argument resolved
+    // to Appearance and the link showed nothing about the problem.
     expect(onOpenDiagnose).toHaveBeenCalledTimes(1);
-    expect(onOpenDiagnose.mock.calls[0]).toHaveLength(0);
+    expect(onOpenDiagnose.mock.calls[0]).toEqual(["about"]);
   });
 });
