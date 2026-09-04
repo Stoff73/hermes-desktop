@@ -209,7 +209,10 @@ export function ConfigHealthBanner({
             <button
               className="config-health-banner-link"
               type="button"
-              onClick={onOpenDiagnose}
+              // Not `onClick={onOpenDiagnose}` — React would pass the click
+              // event as the `section` argument, and resolveSection calls
+              // .trim() on it.
+              onClick={() => onOpenDiagnose()}
             >
               {t("diagnose.banner.showDetails")}
             </button>

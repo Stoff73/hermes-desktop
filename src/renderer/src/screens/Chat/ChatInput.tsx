@@ -48,6 +48,22 @@ export interface ChatInputReadiness {
   expectedEnvKey?: string;
 }
 
+/**
+ * Which screen each readiness fixLocation sends you to. "models" lands on
+ * Providers because that is where the active model is picked. "setup" has no
+ * in-app screen, so it stays plain text rather than a link that goes nowhere.
+ */
+const READINESS_FIX_VIEW: Record<string, string> = {
+  providers: "providers",
+  models: "providers",
+  gateway: "gateway",
+};
+
+/** Layout owns the view state and listens for this; see Layout.tsx `goTo`. */
+function goToView(view: string): void {
+  window.dispatchEvent(new CustomEvent("navigation:goto", { detail: view }));
+}
+
 interface ChatInputProps {
   isLoading: boolean;
   hasSession: boolean;
@@ -496,6 +512,10 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
 
     // Map fixLocation → user-facing call to action. The strings are
     // wrapped in i18n; the location ids come from main/validation.ts.
+    //
+    // The label used to be an inert <span> that read like a link ("Choose a
+    // model in Models →") and did nothing when clicked. Layout already
+    // listens for `navigation:goto`, so the fix needs no prop plumbing.
     function readinessFixLabel(loc: string | undefined): string {
       switch (loc) {
         case "providers":
@@ -623,11 +643,23 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
                   })
                 : readiness.message}
             </span>
-            {readiness.fixLocation && (
-              <span className="chat-readiness-fix">
-                {readinessFixLabel(readiness.fixLocation)}
-              </span>
-            )}
+            {readiness.fixLocation &&
+              (READINESS_FIX_VIEW[readiness.fixLocation] ? (
+                <button
+                  type="button"
+                  className="chat-readiness-fix is-link"
+                  data-testid="chat-readiness-fix"
+                  onClick={() =>
+                    goToView(READINESS_FIX_VIEW[readiness.fixLocation!])
+                  }
+                >
+                  {readinessFixLabel(readiness.fixLocation)}
+                </button>
+              ) : (
+                <span className="chat-readiness-fix">
+                  {readinessFixLabel(readiness.fixLocation)}
+                </span>
+              ))}
           </div>
         )}
         {(attachments.length > 0 || attachmentError) && (

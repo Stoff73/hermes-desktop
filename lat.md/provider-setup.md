@@ -192,3 +192,20 @@ Each card's logo is resolved by [[src/renderer/src/components/common/BrandLogo.t
 `detectBrand` matches the provider/model string to a `BrandKey`, and `matchTheme` flattens every logo to a single white/black tint so colored and `currentColor` SVGs render uniformly in the grid's logo tiles.
 
 The Local/Remote preset chips are also branded: each renders the same `BrandLogo` (by preset id) to the left of its name in a row. `llama.cpp` is mapped off the Meta logo to the generic API mark (the `/llama/` substring would otherwise tag it, and Ollama, as Meta); any preset without a bundled logo falls back to the generic mark.
+
+## Getting from a broken config back to a working one
+
+Two banners tell you the config is wrong, and both had a call to action that did nothing when clicked.
+
+The composer's readiness banner ([[src/renderer/src/screens/Chat/ChatInput.tsx]]) rendered its fix hint — "Choose a model in Models →" — as a plain `<span>`. It read as a link and was inert. It is now a button for the locations that have a screen (`providers` and `models` both land on Providers, where the active model is picked; `gateway` on the Gateway tab), dispatching the `navigation:goto` event Layout already listens for, so no props thread through Chat. `setup` has no in-app screen and stays plain text rather than becoming a link to nowhere.
+
+Separately, [[src/renderer/src/components/ConfigHealthBanner.tsx]]'s "Show details" passed the handler straight to `onClick`, so React handed the click event to `openSettings` as its `section` argument and `resolveSection` threw on `MouseEvent.trim`. The click is now wrapped, and `resolveSection` guards the type rather than only the value.
+
+### Readiness fix link navigates
+
+A "choose a model" fix opens Providers and a gateway fix opens the Gateway tab, both through `navigation:goto`; a fix location with no screen renders as text with no button.
+
+### Diagnose link passes no section
+
+"Show details" calls the handler with no arguments, so the click event never reaches `resolveSection`, which itself returns the default pane for a non-string.
+

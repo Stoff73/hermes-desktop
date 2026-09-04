@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   CONFIG_HEALTH_UPDATED_EVENT,
@@ -100,5 +100,21 @@ describe("ConfigHealthBanner", () => {
     });
 
     expect(screen.getByTestId("config-health-banner")).toBeTruthy();
+  });
+
+  // @lat: [[provider-setup#Provider setup#Getting from a broken config back to a working one#Diagnose link passes no section]]
+  it("opens Diagnose with no section rather than handing it the click event", async () => {
+    const onOpenDiagnose = vi.fn();
+    render(
+      <ConfigHealthBanner profile="default" onOpenDiagnose={onOpenDiagnose} />,
+    );
+    await screen.findByTestId("config-health-banner");
+
+    fireEvent.click(screen.getByText("diagnose.banner.showDetails"));
+
+    // Passing the handler straight to onClick used to send a MouseEvent as
+    // `section`, which resolveSection called .trim() on and threw.
+    expect(onOpenDiagnose).toHaveBeenCalledTimes(1);
+    expect(onOpenDiagnose.mock.calls[0]).toHaveLength(0);
   });
 });

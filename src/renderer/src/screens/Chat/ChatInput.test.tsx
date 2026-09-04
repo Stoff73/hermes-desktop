@@ -121,3 +121,47 @@ describe("ChatInput — slash command palette", () => {
     expect(screen.queryByText("command-0")).toBeNull();
   });
 });
+
+// @lat: [[provider-setup#Provider setup#Getting from a broken config back to a working one#Readiness fix link navigates]]
+describe("ChatInput — readiness fix link", () => {
+  /** Renders the banner and returns the views `navigation:goto` was asked for. */
+  function renderWithReadiness(fixLocation: string): string[] {
+    const seen: string[] = [];
+    const listener = (e: Event): void => {
+      seen.push((e as CustomEvent<string>).detail);
+    };
+    window.addEventListener("navigation:goto", listener);
+    afterEach(() => window.removeEventListener("navigation:goto", listener));
+    render(
+      <ChatInput
+        isLoading={false}
+        hasSession={true}
+        onSubmit={vi.fn()}
+        onQuickAsk={vi.fn()}
+        onAbort={vi.fn()}
+        readiness={{ ok: false, message: "no model", fixLocation }}
+      />,
+    );
+    return seen;
+  }
+
+  it("navigates to Providers when the fix is to choose a model", () => {
+    const seen = renderWithReadiness("models");
+    fireEvent.click(screen.getByTestId("chat-readiness-fix"));
+    expect(seen).toEqual(["providers"]);
+  });
+
+  it("navigates to the Gateway screen for a gateway fix", () => {
+    const seen = renderWithReadiness("gateway");
+    fireEvent.click(screen.getByTestId("chat-readiness-fix"));
+    expect(seen).toEqual(["gateway"]);
+  });
+
+  it("leaves a fix with no screen as plain text, not a dead link", () => {
+    // "setup" has no in-app view; a link that goes nowhere is the bug this
+    // whole change exists to remove.
+    renderWithReadiness("setup");
+    expect(screen.queryByTestId("chat-readiness-fix")).toBeNull();
+    expect(screen.getByText("chat.validation.fixInSetup")).toBeTruthy();
+  });
+});
