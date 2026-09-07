@@ -59,7 +59,7 @@ This plan is executed by Opus 5 inline (or by a fresh subagent per task).
 | 6 | Chat auto-send | done | 39809dd |
 | 7 | Layout onboarding handoff | done | cfc77fb |
 | 8 | Preset in the Agents create modal | done | 6c2027d |
-| 9 | Docs, lat check, manual run-through | docs + lat check done (eaf2279); fresh-install walkthrough pending | eaf2279 |
+| 9 | Docs, lat check, manual run-through | done | eaf2279 |
 
 ---
 
@@ -1631,4 +1631,4 @@ EOF
 | 6 | 2026-09-07 | As planned: ref-guarded effect, no new Chat harness. |
 | 7 | 2026-09-07 | The test caught a real bug: panes lazy-mount on first visit, so the initial view had to be seeded into `visitedViews` or onboarding's Gateway never mounted. Also needed a jsdom `ResizeObserver` stub. |
 | 8 | 2026-09-07 | The existing clone test encoded the old default; updated to pick "Blank", which is what it was actually testing. |
-| 9 | 2026-09-07 | `lat check` passes. Suite: 2012 passed, 10 failed in `gateway-restart`, `terminal-launcher`, `AgentMarkdown` — all pre-existing and flaky (they fail on `main` too, with counts that vary per run). Fresh-install walkthrough not yet run: it needs a real install and an admin password. |
+| 9 | 2026-09-07 | Fresh-install walkthrough run end to end against a temp `HERMES_HOME` (removed afterwards): install → setup → meet-your-agent → Gateway (Slack only) → chat with exactly one auto-sent turn; name, persona and toolsets verified on disk. Two bugs found and fixed — see commits 2d50ceb and d6212a9. `lat check` passes. Suite: 2012 passed, 10 failed in `gateway-restart`, `terminal-launcher`, `AgentMarkdown` — all pre-existing and flaky (they fail on `main` too, with counts that vary per run). Fresh-install walkthrough not yet run: it needs a real install and an admin password. |
