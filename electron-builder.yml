@@ -1,4 +1,6 @@
-appId: com.nousresearch.hermes
+# Reverse-DNS of csjones.co. Was com.nousresearch.hermes — upstream's id on a
+# build signed by this team, which would collide with theirs if a user had both.
+appId: co.csjones.hermes
 productName: Hermes One
 directories:
   buildResources: build
