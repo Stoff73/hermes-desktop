@@ -1,6 +1,6 @@
 # First-agent onboarding: meet the general agent
 
-Status: draft, awaiting approval
+Status: approved 2026-09-07; plan at `docs/superpowers/plans/2026-09-07-first-agent-onboarding.md`
 Date: 2026-09-07
 Prompted by: "if it is a fresh install, we do need to run the user through creating
 their first agent, we should have a general agent preset, one that can do everything
@@ -48,7 +48,7 @@ from the desktop's own install (`./hermes profile list` inside
 
 ### Flow
 
-```
+```text
 Welcome → Install → Setup → Meet your agent → [Gateway: connect channels] → Chat
 ```
 
@@ -65,8 +65,8 @@ channel. With no channels ticked, Finish goes straight to chat.
 One screen inside `OnboardHero` (eyebrow "YOUR AGENT"), four blocks:
 
 1. **Name** — text field, prefilled with the preset's suggested name, editable.
-   Required; Continue is disabled while empty. Validated with the existing
-   `normalizeAgentName` rules so it can't produce a name the profile layer rejects.
+   Required: Continue with a blank name shows "Give your agent a name." rather
+   than a silently disabled button, and nothing is written.
 2. **What should it help you with?** — a single line of free text, optional. It is
    interpolated into the persona; empty means the persona omits that section.
 3. **Capabilities** — a grid of toggles over the curated toolset keys below.
@@ -101,7 +101,6 @@ points:
 ```ts
 export interface AgentPreset {
   id: string;                    // "general"
-  nameKey: string;               // i18n label for the preset itself
   suggestedName: string;         // prefills the name field
   toolsets: Record<string, boolean>;
   buildPersona(input: { name: string; purpose: string }): string;
@@ -221,8 +220,10 @@ the `hermesAPI` surface; main-process tests hit real temp dirs).
   expected payload.
 - `src/renderer/src/screens/Gateway/Gateway.test.tsx` — `highlightPlatforms` filters
   the list; the continue banner appears only in onboarding mode.
-- `src/renderer/src/screens/Chat/Chat.test.tsx` — `autoSendPrompt` sends once, and
-  not again on re-render.
+- `Chat` has no test file in this repo (it is covered through its extracted
+  helpers), so the auto-send is a ref-guarded effect verified by the Layout test
+  below — exactly one run carries a prompt — plus the manual first-run walkthrough.
+  Standing up a full `Chat` harness for a five-line effect is not worth it.
 - `src/renderer/src/screens/Layout/Layout.test.tsx` — onboarding with channels opens
   Gateway then chat; onboarding without channels opens chat directly.
 
