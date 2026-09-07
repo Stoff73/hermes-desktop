@@ -1118,6 +1118,14 @@ const hermesAPI = {
   resetSoul: (profile?: string): Promise<string> =>
     ipcRenderer.invoke("reset-soul", profile),
 
+  // Agent presets
+  applyAgentPreset: (
+    presetId: string,
+    input: { name: string; purpose: string; toolsets: Record<string, boolean> },
+    profile?: string,
+  ): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke("apply-agent-preset", presetId, input, profile),
+
   // Tools
   getToolsets: (
     profile?: string,

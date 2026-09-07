@@ -27,7 +27,18 @@ import type {
 type DraftValues = Record<string, Record<string, string>>;
 type PlatformMessage = Record<string, MessagingPlatformTestResponse | null>;
 
-function Gateway({ profile }: { profile?: string }): React.JSX.Element {
+function Gateway({
+  profile,
+  highlightPlatforms,
+  onContinue,
+}: {
+  profile?: string;
+  /** When set, show only these platform ids — used by first-run onboarding so
+   *  the user sees the channels they asked for, not the full catalogue. */
+  highlightPlatforms?: string[];
+  /** Present only in onboarding: finishes the connect step. */
+  onContinue?: () => void;
+}): React.JSX.Element {
   const { t } = useI18n();
   const [gatewayRunning, setGatewayRunning] = useState(false);
   const [gatewayBusy, setGatewayBusy] = useState(false);
@@ -98,7 +109,11 @@ function Gateway({ profile }: { profile?: string }): React.JSX.Element {
     };
   }, [profile]);
 
-  const platforms = catalog?.platforms ?? [];
+  const platforms = useMemo(() => {
+    const all = catalog?.platforms ?? [];
+    if (!highlightPlatforms?.length) return all;
+    return all.filter((platform) => highlightPlatforms.includes(platform.id));
+  }, [catalog, highlightPlatforms]);
   const filteredPlatforms = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) return platforms;
@@ -460,6 +475,15 @@ function Gateway({ profile }: { profile?: string }): React.JSX.Element {
               {t("gateway.apiServerKey.generateHint")}
             </div>
           </div>
+        </div>
+      )}
+
+      {onContinue && (
+        <div className="gateway-onboard-banner">
+          <span>{t("setup.firstAgent.gatewayBanner")}</span>
+          <button className="btn btn-primary btn-sm" onClick={onContinue}>
+            {t("setup.firstAgent.gatewayContinue")}
+          </button>
         </div>
       )}
 

@@ -3,6 +3,9 @@ import { ArrowRight, Copy, Send, Folder } from "../../assets/icons";
 import OnboardHero from "../../components/common/OnboardHero";
 
 const TELEGRAM_COMMUNITY_URL = "https://t.me/hermes_agent_desktop";
+
+/** How long "Installation Complete" stays up before setup opens by itself. */
+const INSTALL_DONE_ADVANCE_MS = 2000;
 import { useI18n } from "../../components/useI18n";
 
 // Small info glyph for the confirmation note card (no Info icon in the set).
@@ -123,6 +126,17 @@ function Install({
       logRef.current.scrollTop = logRef.current.scrollHeight;
     }
   }, [progress.log]);
+
+  // A finished install used to sit on a "Continue to setup" button. After a
+  // multi-minute install the user has often looked away, and coming back to a
+  // button that only says "carry on" is friction with nothing behind it — so
+  // advance on our own. The beat is long enough to register "Installation
+  // complete", and the button stays for anyone who wants to skip the beat.
+  useEffect(() => {
+    if (!done) return;
+    const timer = setTimeout(onComplete, INSTALL_DONE_ADVANCE_MS);
+    return () => clearTimeout(timer);
+  }, [done, onComplete]);
 
   function handleCopyLogs(): void {
     const text = `Installation Error:\n${failed}\n\n--- Full Log ---\n${progress.log}`;

@@ -143,4 +143,7 @@ export default {
     "Sign in to your Hermes One account on the Providers page to see this agent's wallets.",
   walletForeignHint:
     "This agent is linked to a different Hermes One account, so its wallets stay untouched here.",
+  presetLabel: "Start from",
+  presetGeneral: "General — can do everything, and set up other agents",
+  presetBlank: "Blank",
 } as const;

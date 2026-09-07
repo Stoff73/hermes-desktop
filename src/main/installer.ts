@@ -210,9 +210,8 @@ export function getEnhancedPath(): string {
           join(HERMES_HOME, "node"),
           join(HERMES_VENV, "Scripts"),
           // Common user/system installs used when Claw3D setup runs before or
-          // outside the bundled installer.
-          process.env.NVM_SYMLINK,
-          process.env.APPDATA ? join(process.env.APPDATA, "npm") : undefined,
+          // outside the bundled installer. (NVM_SYMLINK and the APPDATA npm
+          // dir are fallbacks — see nodeManagerBins.)
           process.env.ProgramFiles
             ? join(process.env.ProgramFiles, "nodejs")
             : undefined,
@@ -233,18 +232,42 @@ export function getEnhancedPath(): string {
           join(home, ".local", "bin"),
           join(home, ".cargo", "bin"),
           join(HERMES_VENV, "bin"),
-          // Node version manager shim directories
-          join(home, ".volta", "bin"),
-          join(home, ".asdf", "shims"),
-          join(home, ".local", "share", "fnm", "aliases", "default", "bin"),
-          join(home, ".fnm", "aliases", "default", "bin"),
-          ...resolveNvmBin(home),
           "/usr/local/bin",
           "/opt/homebrew/bin",
           "/opt/homebrew/sbin",
         ]
   ).filter((entry): entry is string => Boolean(entry));
-  return [...extra, process.env.PATH || ""].filter(Boolean).join(delimiter);
+  return [...extra, process.env.PATH || "", ...nodeManagerBins(home)]
+    .filter(Boolean)
+    .join(delimiter);
+}
+
+/**
+ * Node version manager shim directories, as a **fallback** after the user's
+ * own PATH.
+ *
+ * These exist for the Finder-launch case, where PATH is the bare
+ * `/usr/bin:/bin:/usr/sbin:/sbin` and holds no node at all. Prepending them
+ * instead made every spawned process use the version manager's node even when
+ * PATH already had a newer one: on a machine whose nvm default was node 20 and
+ * whose PATH had node 22, the agent's web-UI build hit EBADENGINE (it requires
+ * ^22.22) and reported only "✗ Web UI npm install failed" — the install runs
+ * `--silent`, at which log level npm prints nothing at all.
+ */
+function nodeManagerBins(home: string): string[] {
+  if (IS_WINDOWS) {
+    return [
+      process.env.NVM_SYMLINK,
+      process.env.APPDATA ? join(process.env.APPDATA, "npm") : undefined,
+    ].filter((entry): entry is string => Boolean(entry));
+  }
+  return [
+    join(home, ".volta", "bin"),
+    join(home, ".asdf", "shims"),
+    join(home, ".local", "share", "fnm", "aliases", "default", "bin"),
+    join(home, ".fnm", "aliases", "default", "bin"),
+    ...resolveNvmBin(home),
+  ];
 }
 
 /** Resolve the active nvm node version's bin directory. */
