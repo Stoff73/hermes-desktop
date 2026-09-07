@@ -28,9 +28,9 @@ primary button and lists every build underneath.
 When GitHub is unreachable, or when a release has none of those assets, the
 button degrades to a link to the releases page rather than failing silently.
 
-## The macOS notarisation note
+## Signing
 
-The page carries a "first launch on macOS" note explaining the Gatekeeper
-warning. **Delete that block once the mac build is notarised** — see
-`electron-builder.yml` (`notarize: true`) and the signing secrets the release
-workflow expects.
+The mac builds are signed with a Developer ID Application certificate and
+notarised by Apple, so they open on a double-click with no Gatekeeper warning
+and the page needs no "right-click → Open" instructions. Windows is unsigned
+and still shows a SmartScreen prompt.

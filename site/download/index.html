@@ -251,13 +251,6 @@
         <div id="rows"></div>
       </section>
 
-      <section class="note" id="mac-note" hidden>
-        <strong>First launch on macOS</strong>
-        This build isn't notarised by Apple yet, so macOS will say it can't
-        verify the developer. Right-click the app in Applications, choose
-        <code>Open</code>, then confirm. You only do this once.
-      </section>
-
       <section class="note">
         <strong>What happens after you install</strong>
         On first launch the app installs the Hermes Agent (about 2 GB) and walks
@@ -386,10 +379,6 @@
           rows.append(a);
         }
         document.getElementById("others").hidden = false;
-
-        if (pick.kind.id.startsWith("mac")) {
-          document.getElementById("mac-note").hidden = false;
-        }
       }
 
       load();
