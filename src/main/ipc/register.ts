@@ -298,6 +298,10 @@ import {
 } from "../agents-memory";
 import { readSoul, writeSoul, resetSoul } from "../soul";
 import {
+  applyAgentPreset,
+  type ApplyAgentPresetInput,
+} from "../agent-presets";
+import {
   getPlatformToolsets,
   getToolsets,
   setMessagingPlatformToolsetEnabled,
@@ -2335,6 +2339,17 @@ export function registerIpcHandlers(context: IpcContext): void {
     }
     return setProfileName(id, name);
   });
+  // One call rather than three, so a half-applied preset (named but no persona)
+  // is a failure the renderer can retry instead of a silently odd agent.
+  ipcMain.handle(
+    "apply-agent-preset",
+    (
+      _event,
+      presetId: string,
+      input: ApplyAgentPresetInput,
+      profile?: string,
+    ) => applyAgentPreset(presetId, input, profile),
+  );
   ipcMain.handle(
     "set-profile-avatar",
     (_event, name: string, dataUrl: string) => setProfileAvatar(name, dataUrl),
