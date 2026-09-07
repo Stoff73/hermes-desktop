@@ -820,6 +820,11 @@ interface HermesAPI {
   readSoul: (profile?: string) => Promise<string>;
   writeSoul: (content: string, profile?: string) => Promise<boolean>;
   resetSoul: (profile?: string) => Promise<string>;
+  applyAgentPreset: (
+    presetId: string,
+    input: { name: string; purpose: string; toolsets: Record<string, boolean> },
+    profile?: string,
+  ) => Promise<{ success: boolean; error?: string }>;
 
   // Tools
   getToolsets: (
