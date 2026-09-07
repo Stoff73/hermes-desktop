@@ -809,7 +809,11 @@ body:has(.shell-vibrant),
   --code-bg: #10131d;
   --selection: rgba(120, 150, 255, 0.5);
   position: relative;
-  overflow: hidden;
+  /* A screen taller than the window (the first-agent form on a short window)
+     must scroll, or its own Continue button is unreachable. The backdrop is
+     absolutely positioned, so this never drags the aurora out of place. */
+  overflow-y: auto;
+  overflow-x: hidden;
   background: var(--bg-primary);
   color: var(--text-primary);
   -webkit-user-select: none;
@@ -895,6 +899,7 @@ body:has(.shell-vibrant),
   align-items: center;
   max-width: 640px;
   margin: auto;
+  padding: 16px 0;
   text-align: center;
 }
 
@@ -1243,6 +1248,31 @@ body:has(.shell-vibrant),
 }
 
 /* ---- First-agent screen (Meet your agent) ---- */
+/* `display: contents` so the scope class adds no box of its own — the fields
+   stay direct flex children of the hero body. */
+.onboard-first-agent {
+  display: contents;
+}
+/* This screen stacks far more labelled blocks than Install or Setup, and the
+   shared spacing above each one pushed the actions off a default-height window.
+   Tightened so the whole form fits an 1100x850 default window without
+   scrolling; the screen still scrolls on anything shorter. */
+.onboard-first-agent .onboard-field-label {
+  margin-top: 14px;
+}
+.onboard-first-agent .onboard-subtitle {
+  margin-top: 14px;
+}
+.onboard-first-agent .onboard-note {
+  margin-top: 8px;
+}
+.onboard-first-agent .onboard-actions {
+  margin-top: 16px;
+}
+.onboard-first-agent .onboard-capability {
+  padding: 7px 12px;
+}
+
 .onboard-input {
   width: 100%;
   padding: 13px 16px;
@@ -1264,11 +1294,18 @@ body:has(.shell-vibrant),
 
 .onboard-capability-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 16px;
+  /* Three across keeps the seven capabilities to three rows, which is what
+     lets the whole form fit a default-height window. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px 10px;
   width: 100%;
 }
-@media (max-width: 520px) {
+@media (max-width: 560px) {
+  .onboard-capability-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 380px) {
   .onboard-capability-grid {
     grid-template-columns: minmax(0, 1fr);
   }
