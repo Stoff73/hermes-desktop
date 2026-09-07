@@ -57,12 +57,14 @@ function profile(name: string, isDefault = false): ProfileInfo {
 function installHermesAPI(): {
   listProfiles: ReturnType<typeof vi.fn>;
   createProfile: ReturnType<typeof vi.fn>;
+  applyAgentPreset: ReturnType<typeof vi.fn>;
   deleteProfile: ReturnType<typeof vi.fn>;
   setActiveProfile: ReturnType<typeof vi.fn>;
 } {
   const api = {
     listProfiles: vi.fn(),
     createProfile: vi.fn(),
+    applyAgentPreset: vi.fn(),
     deleteProfile: vi.fn(),
     setActiveProfile: vi.fn(),
   };
@@ -98,6 +100,11 @@ describe("Agents profile creation", () => {
     });
 
     fireEvent.click(screen.getByText("agents.newAgent"));
+    // This test is about the clone path, which now sits behind the "blank"
+    // choice — the modal defaults to the general preset.
+    fireEvent.change(screen.getByRole("combobox"), {
+      target: { value: "blank" },
+    });
     fireEvent.change(screen.getByPlaceholderText("agents.namePlaceholder"), {
       target: { value: "test2" },
     });
@@ -118,4 +125,51 @@ describe("Agents profile creation", () => {
   // Profile deletion (optimistic hide + rollback on failure) moved out of the
   // Agents screen into the ProfileModal danger zone, so its rendering tests no
   // longer belong here. The Agents screen only opens that modal now.
+});
+
+describe("Agents preset creation", () => {
+  it("applies the general preset to a newly created agent", async () => {
+    const api = installHermesAPI();
+    api.listProfiles.mockResolvedValue([profile("default", true)]);
+    api.createProfile.mockResolvedValue({ success: true, id: "atlas" });
+    api.applyAgentPreset.mockResolvedValue({ success: true });
+
+    render(
+      <Agents
+        activeProfile="default"
+        onSelectProfile={() => {}}
+        onChatWith={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("default")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByText("agents.newAgent"));
+    fireEvent.change(screen.getByPlaceholderText("agents.namePlaceholder"), {
+      target: { value: "Atlas" },
+    });
+    fireEvent.click(screen.getByText("agents.create"));
+
+    await waitFor(() => expect(api.applyAgentPreset).toHaveBeenCalled());
+    expect(api.createProfile).toHaveBeenCalledWith("Atlas", null);
+    expect(api.applyAgentPreset).toHaveBeenCalledWith(
+      "general",
+      {
+        name: "Atlas",
+        purpose: "",
+        toolsets: {
+          web: true,
+          browser: true,
+          file: true,
+          terminal: true,
+          code_execution: true,
+          vision: true,
+          computer_use: false,
+        },
+      },
+      "atlas",
+    );
+  });
 });

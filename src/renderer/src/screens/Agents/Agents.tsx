@@ -3,6 +3,11 @@ import { Plus, ChatBubble, Pencil, X } from "../../assets/icons";
 import ProfileAvatar from "../../components/common/ProfileAvatar";
 import { AppModal, AppModalTitle } from "../../components/modal/AppModal";
 import { useI18n } from "../../components/useI18n";
+import {
+  AGENT_PRESETS,
+  GENERAL_PRESET,
+  getAgentPreset,
+} from "../../../../shared/agent-presets";
 import { OrbLoader } from "../../components/OrbLoader";
 import { useProfileModal } from "../../components/profile/ProfileModalContext";
 import type {
@@ -42,6 +47,9 @@ function Agents({
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  // "blank" keeps the original create-then-clone behaviour; a preset also
+  // writes the new agent's persona and capabilities.
+  const [preset, setPreset] = useState<string>(GENERAL_PRESET.id);
   const [newName, setNewName] = useState("");
   const [cloneConfig, setCloneConfig] = useState(true);
   // Source profile to clone config/keys/skills from when `cloneConfig` is on.
@@ -190,6 +198,7 @@ function Agents({
     setNewName("");
     setError("");
     setCloneConfig(true);
+    setPreset(GENERAL_PRESET.id);
     setCloneSource(activeProfile || "default");
     setShowCreate(true);
   }
@@ -204,10 +213,28 @@ function Agents({
     if (!name) return;
     setCreating(true);
     setError("");
+    const usePreset = preset !== "blank" ? getAgentPreset(preset) : undefined;
     const result = await window.hermesAPI.createProfile(
       name,
-      cloneConfig ? cloneSource : null,
+      usePreset ? null : cloneConfig ? cloneSource : null,
     );
+
+    // A preset finishes the agent the create call only outlined: its persona
+    // and its capabilities.
+    if (result.success && usePreset && result.id) {
+      const applied = await window.hermesAPI.applyAgentPreset(
+        usePreset.id,
+        { name, purpose: "", toolsets: usePreset.toolsets },
+        result.id,
+      );
+      if (!applied.success) {
+        setCreating(false);
+        setError(applied.error || t("agents.createFailed"));
+        loadProfiles();
+        return;
+      }
+    }
+
     setCreating(false);
     if (result.success) {
       setShowCreate(false);
@@ -342,15 +369,34 @@ function Agents({
               autoFocus
             />
           </label>
-          <label className="agents-create-clone">
-            <input
-              type="checkbox"
-              checked={cloneConfig}
-              onChange={(e) => setCloneConfig(e.target.checked)}
-            />
-            <span>{t("agents.cloneConfig")}</span>
+          <label className="agents-create-field">
+            <span>{t("agents.presetLabel")}</span>
+            <select
+              className="input"
+              value={preset}
+              onChange={(e) => setPreset(e.target.value)}
+            >
+              {AGENT_PRESETS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {t(
+                    `agents.preset${p.id.charAt(0).toUpperCase()}${p.id.slice(1)}`,
+                  )}
+                </option>
+              ))}
+              <option value="blank">{t("agents.presetBlank")}</option>
+            </select>
           </label>
-          {cloneConfig && (
+          {preset === "blank" && (
+            <label className="agents-create-clone">
+              <input
+                type="checkbox"
+                checked={cloneConfig}
+                onChange={(e) => setCloneConfig(e.target.checked)}
+              />
+              <span>{t("agents.cloneConfig")}</span>
+            </label>
+          )}
+          {preset === "blank" && cloneConfig && (
             <label className="agents-create-field">
               <span>{t("agents.cloneFromLabel")}</span>
               <select
