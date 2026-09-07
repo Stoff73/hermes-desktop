@@ -32,3 +32,26 @@ describe("installer platform wiring", () => {
     expect(HERMES_PYTHON).toMatch(/venv[\\/]bin[\\/]python$/);
   });
 });
+
+describe("enhanced PATH ordering", () => {
+  // A node-version-manager directory used to be prepended, so every
+  // subprocess ran that node even when the user's own PATH provided a newer
+  // one. On a machine whose nvm default was node 20 and whose PATH had node
+  // 22, the agent's web-UI build died with EBADENGINE (it requires >=22.22)
+  // — reported only as "✗ Web UI npm install failed", because the install
+  // runs `--silent` and npm prints nothing at that log level.
+  it("keeps the user's own PATH ahead of node version manager directories", () => {
+    const entries = getEnhancedPath().split(delimiter);
+    const userEntries = (process.env.PATH || "").split(delimiter).filter(Boolean);
+    if (userEntries.length === 0) return;
+
+    const versionManager = entries.findIndex((entry) =>
+      /[\\/](\.nvm|\.volta|\.asdf|\.fnm|fnm)[\\/]/.test(entry),
+    );
+    if (versionManager === -1) return; // no version manager on this machine
+
+    const firstUserEntry = entries.indexOf(userEntries[0]);
+    expect(firstUserEntry).toBeGreaterThanOrEqual(0);
+    expect(firstUserEntry).toBeLessThan(versionManager);
+  });
+});
