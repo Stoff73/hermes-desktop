@@ -4,6 +4,12 @@ The profile modal is the per-agent settings screen: everything about one agent â
 
 An agent is a Hermes profile (`~/.hermes/profiles/<id>/`, the default at `~/.hermes`) with its own `config.yaml`, `.env`, `SOUL.md`, memories and `state.db`. [[src/renderer/src/components/profile/ProfileModal.tsx#ProfileModal]] opens from the Agents screen, the profile switcher and the Memory overview, optionally at a named tab.
 
+## Starting from a preset
+
+A new agent can be created from a preset that writes its persona and capabilities, not just its name â€” see [[onboarding#First agent]].
+
+The Agents screen's create modal offers the shared general preset (the default) or "Blank", which keeps the original create-then-clone behaviour. Picking a preset skips the clone source, since a preset and a clone are two answers to the same question.
+
 ## Tabs
 
 Profile, Persona, Memory, Wallet, Sync, Advanced. Persona is the agent's system prompt (`SOUL.md`) and stays its own tab; Memory holds the systems inventory from [[memory]].
