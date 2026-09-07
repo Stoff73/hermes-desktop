@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Download Hermes One</title>
+    <meta
+      name="description"
+      content="Hermes One — a self-improving AI assistant that runs locally on your own machine."
+    />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0d0f17;
+        --bg-soft: #141824;
+        --panel: rgba(255, 255, 255, 0.03);
+        --border: rgba(255, 255, 255, 0.1);
+        --border-bright: rgba(255, 255, 255, 0.2);
+        --text: #eef0f6;
+        --muted: #8b91a5;
+        --dim: #6c7186;
+        --accent: #5b7cfa;
+        --accent-2: #7d5bfa;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(
+            ellipse 80% 60% at 50% -10%,
+            rgba(91, 124, 250, 0.18),
+            transparent 70%
+          ),
+          radial-gradient(
+            ellipse 60% 50% at 90% 10%,
+            rgba(125, 91, 250, 0.12),
+            transparent 70%
+          ),
+          var(--bg);
+        color: var(--text);
+        font:
+          16px/1.6 -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      main {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 72px 24px 96px;
+        text-align: center;
+      }
+
+      .emblem {
+        width: 76px;
+        height: 76px;
+        margin: 0 auto 28px;
+        display: block;
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--dim);
+      }
+
+      h1 {
+        margin: 0 0 16px;
+        font-size: clamp(32px, 6vw, 44px);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      .lede {
+        margin: 0 auto 40px;
+        max-width: 460px;
+        color: var(--muted);
+        text-wrap: pretty;
+      }
+
+      .primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 15px 30px;
+        border: 0;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        color: #fff;
+        font-size: 16px;
+        font-weight: 600;
+        text-decoration: none;
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.15s ease;
+      }
+
+      .primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 30px rgba(91, 124, 250, 0.35);
+      }
+
+      .primary[aria-disabled="true"] {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        color: var(--muted);
+        pointer-events: none;
+        box-shadow: none;
+      }
+
+      .meta {
+        margin: 14px 0 0;
+        font-size: 13px;
+        color: var(--dim);
+      }
+
+      .others {
+        margin: 44px auto 0;
+        max-width: 460px;
+        text-align: left;
+      }
+
+      .others h2 {
+        margin: 0 0 12px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--dim);
+      }
+
+      .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 13px 16px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--panel);
+        text-decoration: none;
+        color: var(--text);
+        margin-bottom: 8px;
+        transition: border-color 0.15s ease;
+      }
+
+      .row:hover {
+        border-color: var(--border-bright);
+      }
+
+      .row .size {
+        font-size: 13px;
+        color: var(--dim);
+        white-space: nowrap;
+      }
+
+      .note {
+        margin: 44px auto 0;
+        max-width: 460px;
+        padding: 16px 18px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--panel);
+        text-align: left;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .note strong {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .note code {
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.07);
+        font-size: 13px;
+      }
+
+      footer {
+        margin-top: 56px;
+        font-size: 13px;
+        color: var(--dim);
+      }
+
+      footer a {
+        color: var(--muted);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .primary {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <svg
+        class="emblem"
+        viewBox="0 0 100 100"
+        fill="none"
+        aria-hidden="true"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <circle cx="50" cy="50" r="34" stroke="url(#g)" stroke-width="3" />
+        <path
+          d="M50 24c10 10 16 18 16 26S60 66 50 76c-10-10-16-18-16-26s6-16 16-26z"
+          stroke="url(#g)"
+          stroke-width="3"
+          stroke-linejoin="round"
+        />
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="100" y2="100">
+            <stop stop-color="#5b7cfa" />
+            <stop offset="1" stop-color="#7d5bfa" />
+          </linearGradient>
+        </defs>
+      </svg>
+
+      <p class="eyebrow">Hermes One</p>
+      <h1>Download Hermes One</h1>
+      <p class="lede">
+        A self-improving AI assistant that runs locally on your own machine.
+        Private, powerful, and always learning.
+      </p>
+
+      <a class="primary" id="primary" href="#" aria-disabled="true">
+        <span id="primary-label">Loading releases…</span>
+      </a>
+      <p class="meta" id="meta"></p>
+
+      <section class="others" id="others" hidden>
+        <h2>All downloads</h2>
+        <div id="rows"></div>
+      </section>
+
+      <section class="note" id="mac-note" hidden>
+        <strong>First launch on macOS</strong>
+        This build isn't notarised by Apple yet, so macOS will say it can't
+        verify the developer. Right-click the app in Applications, choose
+        <code>Open</code>, then confirm. You only do this once.
+      </section>
+
+      <section class="note">
+        <strong>What happens after you install</strong>
+        On first launch the app installs the Hermes Agent (about 2 GB) and walks
+        you through naming your first agent and choosing a model provider.
+      </section>
+
+      <footer>
+        <a href="https://github.com/Stoff73/hermes-desktop/releases"
+          >All releases and release notes</a
+        >
+      </footer>
+    </main>
+
+    <script>
+      const REPO = "Stoff73/hermes-desktop";
+      const RELEASES_URL = `https://github.com/${REPO}/releases`;
+
+      // Each entry: how to spot the asset, and how to label it.
+      const KINDS = [
+        {
+          id: "mac-arm64",
+          label: "Download for macOS (Apple Silicon)",
+          short: "macOS · Apple Silicon",
+          match: (n) => n.endsWith(".dmg") && n.includes("arm64"),
+        },
+        {
+          id: "mac-x64",
+          label: "Download for macOS (Intel)",
+          short: "macOS · Intel",
+          match: (n) => n.endsWith(".dmg") && n.includes("x64"),
+        },
+        {
+          id: "win",
+          label: "Download for Windows",
+          short: "Windows · Installer",
+          match: (n) => n.endsWith(".exe") && n.includes("setup"),
+        },
+        {
+          id: "win-portable",
+          label: "Download for Windows (portable)",
+          short: "Windows · Portable",
+          match: (n) => n.endsWith(".exe") && n.includes("portable"),
+        },
+      ];
+
+      function detectKind() {
+        const ua = navigator.userAgent;
+        if (/Mac/i.test(ua)) {
+          // Browsers hide the CPU on Apple Silicon; this is the standard tell.
+          const arm =
+            navigator.maxTouchPoints > 1 ||
+            /Apple M/i.test(navigator.userAgentData?.platform || "");
+          return arm ? "mac-arm64" : "mac-x64";
+        }
+        if (/Win/i.test(ua)) return "win";
+        return null;
+      }
+
+      function mb(bytes) {
+        return `${Math.round(bytes / 1048576)} MB`;
+      }
+
+      function degrade(message) {
+        const primary = document.getElementById("primary");
+        primary.href = RELEASES_URL;
+        primary.removeAttribute("aria-disabled");
+        document.getElementById("primary-label").textContent =
+          "View releases on GitHub";
+        document.getElementById("meta").textContent = message;
+      }
+
+      async function load() {
+        let release;
+        try {
+          const res = await fetch(
+            `https://api.github.com/repos/${REPO}/releases/latest`,
+            { headers: { Accept: "application/vnd.github+json" } },
+          );
+          if (!res.ok) throw new Error(String(res.status));
+          release = await res.json();
+        } catch {
+          degrade(
+            "Couldn't reach GitHub just now — the releases page has every build.",
+          );
+          return;
+        }
+
+        const assets = release.assets || [];
+        const found = KINDS.map((kind) => ({
+          kind,
+          asset: assets.find((a) => kind.match(a.name.toLowerCase())),
+        })).filter((entry) => entry.asset);
+
+        if (found.length === 0) {
+          degrade("No published build yet.");
+          return;
+        }
+
+        const detected = detectKind();
+        const pick =
+          found.find((entry) => entry.kind.id === detected) || found[0];
+
+        const primary = document.getElementById("primary");
+        primary.href = pick.asset.browser_download_url;
+        primary.removeAttribute("aria-disabled");
+        document.getElementById("primary-label").textContent = pick.kind.label;
+
+        const published = new Date(release.published_at).toLocaleDateString(
+          undefined,
+          { year: "numeric", month: "long", day: "numeric" },
+        );
+        document.getElementById("meta").textContent =
+          `${release.tag_name} · ${mb(pick.asset.size)} · ${published}`;
+
+        const rows = document.getElementById("rows");
+        for (const entry of found) {
+          const a = document.createElement("a");
+          a.className = "row";
+          a.href = entry.asset.browser_download_url;
+          const name = document.createElement("span");
+          name.textContent = entry.kind.short;
+          const size = document.createElement("span");
+          size.className = "size";
+          size.textContent = mb(entry.asset.size);
+          a.append(name, size);
+          rows.append(a);
+        }
+        document.getElementById("others").hidden = false;
+
+        if (pick.kind.id.startsWith("mac")) {
+          document.getElementById("mac-note").hidden = false;
+        }
+      }
+
+      load();
+    </script>
+  </body>
+</html>
