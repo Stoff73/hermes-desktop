@@ -111,6 +111,10 @@ interface ChatProps {
   /** Resolved avatar/colour of `profile`, so idle agent avatars in the
    *  transcript show the agent's profile picture instead of the loading gif. */
   agentAppearance?: { color?: string | null; avatar?: string | null };
+  /** Sent once, automatically, when this run mounts — the onboarding handoff's
+   *  opening turn. Ref-guarded because StrictMode double-invokes mount effects
+   *  in dev, and a double send would start two agent turns. */
+  autoSendPrompt?: string;
 }
 
 function Chat({
@@ -126,6 +130,7 @@ function Chat({
   onSessionIdChange,
   onTitleChange,
   agentAppearance,
+  autoSendPrompt,
 }: ChatProps): React.JSX.Element {
   const { t } = useI18n();
   const { completionSoundEnabled } = useChatPreferences();
@@ -810,6 +815,16 @@ function Chat({
     },
     [isLoading],
   );
+
+  // The onboarding handoff's opening turn. The ref (not the effect's dependency
+  // list) is what guarantees one send: StrictMode re-invokes mount effects on
+  // the same instance in dev, and two sends would start two agent turns.
+  const autoSentRef = useRef(false);
+  useEffect(() => {
+    if (!autoSendPrompt || autoSentRef.current) return;
+    autoSentRef.current = true;
+    handleSubmitOrQueue(autoSendPrompt, []);
+  }, [autoSendPrompt, handleSubmitOrQueue]);
 
   const handleSuggestion = useCallback((text: string) => {
     chatInputRef.current?.setText(text);
