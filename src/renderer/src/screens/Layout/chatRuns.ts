@@ -18,6 +18,8 @@ export interface ChatRun {
   title?: string;
   /** Seed transcript when the run was opened from history. */
   seed?: ChatMessage[];
+  /** First turn to send automatically when this run mounts (onboarding). */
+  autoPrompt?: string;
 }
 
 /** A blank chat that can be reassigned to another profile without losing work. */

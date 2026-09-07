@@ -16,6 +16,8 @@ import {
   runIdAtOrdinal,
   loadingSessionIds as deriveLoadingSessionIds,
 } from "./chatRuns";
+import { buildIntroPrompt } from "./onboardingIntro";
+import type { FirstAgentHandoff } from "../FirstAgent/FirstAgent";
 import { ActiveSessionsBar } from "./ActiveSessionsBar";
 import { StatusBar } from "./StatusBar";
 import Sessions from "../Sessions/Sessions";
@@ -88,12 +90,16 @@ const SIDEBAR_COLLAPSED_KEY = "hermes.sidebar.collapsed";
 const SIDEBAR_SCROLLBAR_HIDE_MS = 700;
 
 interface LayoutProps {
+  /** Set only on the first run after onboarding: opens the Gateway on the
+   *  chosen channels, then hands off to a chat that introduces the agent. */
+  onboarding?: FirstAgentHandoff;
   verifyWarning?: boolean;
   onReinstall?: () => void;
   onDismissVerifyWarning?: () => void;
 }
 
 function Layout({
+  onboarding,
   verifyWarning,
   onReinstall,
   onDismissVerifyWarning,
@@ -101,7 +107,12 @@ function Layout({
   const { t } = useI18n();
   const { openProfile } = useProfileModal();
   const { openSettings } = useSettingsModal();
-  const [view, setView] = useState<View>("chat");
+  const [view, setView] = useState<View>(
+    onboarding?.channels.length ? "gateway" : "chat",
+  );
+  // Cleared once the handoff has been consumed, so a later visit to the Gateway
+  // is an ordinary one.
+  const [onboardingActive, setOnboardingActive] = useState(Boolean(onboarding));
   // Multiple conversations coexist (background sessions + multi-agent). Each is
   // a ChatRun; all are mounted, only the active one is shown. Profile switches
   // preserve existing conversations and activate a scratch run for the selected
@@ -263,8 +274,11 @@ function Layout({
   const [sessionsModalOpen, setSessionsModalOpen] = useState(false);
   // Tabs lazy-mount on first visit, then stay mounted (display:none toggle).
   // Keeps IPC refetch / DOM rebuild off the tab-switch hot path.
+  // Panes lazy-mount on first visit, so the initial view must count as visited —
+  // onboarding starts on the Gateway, which would otherwise never mount.
   const [visitedViews, setVisitedViews] = useState<Set<View>>(
-    () => new Set<View>(["chat"]),
+    () =>
+      new Set<View>(["chat", onboarding?.channels.length ? "gateway" : "chat"]),
   );
   // Remote-only mode — SSH tunnel has full access; only pure HTTP remote mode restricts screens
   const [remoteMode, setRemoteMode] = useState(false);
@@ -443,6 +457,47 @@ function Layout({
     setActiveRunId(run.runId);
     goTo("chat");
   }, [runs, activeRunId, activeProfile, goTo]);
+
+  // First-run handoff: check the channels the user picked (the same test the
+  // Gateway screen runs), then open a chat whose first turn asks the agent to
+  // introduce itself and confirm them.
+  const finishOnboarding = useCallback(async () => {
+    if (!onboarding) return;
+    setOnboardingActive(false);
+
+    const results = await Promise.all(
+      onboarding.channels.map(async (id) => {
+        try {
+          const test = await window.hermesAPI.testMessagingPlatform(id);
+          return { id, ok: test.ok, message: test.message };
+        } catch (err) {
+          return { id, ok: false, message: (err as Error).message };
+        }
+      }),
+    );
+
+    const prompt = buildIntroPrompt({
+      agentName: onboarding.agentName,
+      purpose: onboarding.purpose,
+      channels: results,
+    });
+
+    const run = { ...mintRun(activeProfile), autoPrompt: prompt };
+    setRuns((prev) => [...prev, run]);
+    setActiveRunId(run.runId);
+    goTo("chat");
+  }, [onboarding, activeProfile, goTo]);
+
+  // With no channels to connect there is no Gateway step to wait on, so the
+  // handoff runs straight away. The ref (not the dependency list) is what keeps
+  // it to one run under StrictMode's double-invoked mount effects.
+  const onboardingRanRef = useRef(false);
+  useEffect(() => {
+    if (!onboarding || onboardingRanRef.current) return;
+    if (onboarding.channels.length) return;
+    onboardingRanRef.current = true;
+    void finishOnboarding();
+  }, [onboarding, finishOnboarding]);
 
   // Listen for menu IPC events (Cmd+N, Cmd+K from app menu)
   useEffect(() => {
@@ -872,6 +927,7 @@ function Layout({
                   onSessionIdChange={handleRunSessionId}
                   onTitleChange={handleRunTitle}
                   agentAppearance={getAppearance(run.profile)}
+                  autoSendPrompt={run.autoPrompt}
                 />
               </div>
             ))}
@@ -1007,7 +1063,20 @@ function Layout({
               {remoteMode ? (
                 <RemoteNotice feature="Gateway" />
               ) : (
-                <Gateway profile={activeProfile} />
+                <Gateway
+                  profile={activeProfile}
+                  highlightPlatforms={
+                    onboardingActive ? onboarding?.channels : undefined
+                  }
+                  onContinue={
+                    onboardingActive
+                      ? () => {
+                          onboardingRanRef.current = true;
+                          void finishOnboarding();
+                        }
+                      : undefined
+                  }
+                />
               )}
             </div>
           )}

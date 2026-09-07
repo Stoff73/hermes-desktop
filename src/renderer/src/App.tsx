@@ -9,11 +9,20 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Welcome from "./screens/Welcome/Welcome";
 import Install from "./screens/Install/Install";
 import Setup from "./screens/Setup/Setup";
+import FirstAgent, {
+  type FirstAgentHandoff,
+} from "./screens/FirstAgent/FirstAgent";
 import Layout from "./screens/Layout/Layout";
 import SplashScreen from "./screens/SplashScreen/SplashScreen";
 import { captureScreenView } from "./utils/analytics";
 
-type Screen = "splash" | "welcome" | "installing" | "setup" | "main";
+type Screen =
+  | "splash"
+  | "welcome"
+  | "installing"
+  | "setup"
+  | "first-agent"
+  | "main";
 
 // Minimum time the splash stays visible so the background video plays
 // through. Gateway / config checks happen during this window.
@@ -31,6 +40,9 @@ function App(): React.JSX.Element {
   // which previously trapped restricted-network users in a reinstall
   // loop on every launch (#130).
   const [verifyWarning, setVerifyWarning] = useState(false);
+  // Carried from the first-agent screen into Layout: which channels to open the
+  // Gateway on, and what the agent should introduce itself about.
+  const [onboarding, setOnboarding] = useState<FirstAgentHandoff | null>(null);
   const [splashStatus, setSplashStatus] = useState<string | undefined>(
     undefined,
   );
@@ -223,15 +235,26 @@ function App(): React.JSX.Element {
       case "setup":
         return (
           <Setup
-            onComplete={() => setScreen("main")}
+            onComplete={() => setScreen("first-agent")}
             verifyWarning={verifyWarning}
             onReinstall={handleVerifyReinstall}
             onDismissVerifyWarning={handleDismissVerifyWarning}
           />
         );
+      case "first-agent":
+        return (
+          <FirstAgent
+            onComplete={(handoff) => {
+              setOnboarding(handoff);
+              setScreen("main");
+            }}
+            onSkip={() => setScreen("main")}
+          />
+        );
       case "main":
         return (
           <Layout
+            onboarding={onboarding ?? undefined}
             verifyWarning={verifyWarning}
             onReinstall={handleVerifyReinstall}
             onDismissVerifyWarning={handleDismissVerifyWarning}
