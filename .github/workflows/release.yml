@@ -64,7 +64,14 @@ jobs:
     name: Build macOS (${{ matrix.arch }})
     needs: prepare
     if: needs.prepare.outputs.tag_exists == 'false'
-    runs-on: macos-latest
+    # Pinned, not macos-latest. macos-latest moved to macOS 26, where signing
+    # dies with "SecKeychainUnlock: The user name or passphrase you entered is
+    # not correct" — electron-builder hands `security set-key-partition-list`
+    # the .p12 password where that command wants the (randomly generated)
+    # keychain password, which only matters once the keychain is locked.
+    # Reproduced locally: the same call succeeds on an unlocked keychain and
+    # fails with that exact message on a locked one, whatever the password.
+    runs-on: macos-15
     strategy:
       matrix:
         arch: [x64, arm64]
