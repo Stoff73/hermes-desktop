@@ -107,3 +107,94 @@ describe("Gateway screen recovery controls", () => {
     expect(screen.getByText("gateway.stopped")).toBeTruthy();
   });
 });
+
+describe("Gateway onboarding mode", () => {
+  const platforms = [
+    {
+      id: "slack",
+      name: "Slack",
+      description: "",
+      enabled: false,
+      configured: false,
+      env_vars: [],
+      toolsets: [],
+      docs_url: "",
+    },
+    {
+      id: "discord",
+      name: "Discord",
+      description: "",
+      enabled: false,
+      configured: false,
+      env_vars: [],
+      toolsets: [],
+      docs_url: "",
+    },
+  ];
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    Object.defineProperty(window, "hermesAPI", {
+      configurable: true,
+      value: {
+        getEnv: vi.fn().mockResolvedValue({}),
+        getApiServerKeyStatus: vi.fn().mockResolvedValue({
+          exists: true,
+          valid: true,
+          message: null,
+        }),
+        gatewayStatus: vi.fn().mockResolvedValue(true),
+        getPlatformEnabled: vi.fn().mockResolvedValue({}),
+        restartGateway: vi.fn().mockResolvedValue(true),
+        startGateway: vi.fn().mockResolvedValue(true),
+        stopGateway: vi.fn().mockResolvedValue(true),
+        setPlatformEnabled: vi.fn().mockResolvedValue(true),
+        setEnv: vi.fn().mockResolvedValue(true),
+        getMessagingPlatforms: vi
+          .fn()
+          .mockResolvedValue({ platforms, message: null }),
+        updateMessagingPlatform: vi
+          .fn()
+          .mockResolvedValue({ ok: true, message: null }),
+        testMessagingPlatform: vi
+          .fn()
+          .mockResolvedValue({ ok: true, message: null }),
+        openExternal: vi.fn().mockResolvedValue(true),
+      },
+    });
+  });
+
+  afterEach(() => {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+
+  it("shows only the highlighted platforms and a continue action", async () => {
+    const onContinue = vi.fn();
+    render(<Gateway highlightPlatforms={["slack"]} onContinue={onContinue} />);
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText("Slack")).toBeTruthy();
+    expect(screen.queryByText("Discord")).toBeNull();
+
+    fireEvent.click(screen.getByText("setup.firstAgent.gatewayContinue"));
+    expect(onContinue).toHaveBeenCalled();
+  });
+
+  it("shows every platform and no continue action normally", async () => {
+    render(<Gateway />);
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText("Slack")).toBeTruthy();
+    expect(screen.getByText("Discord")).toBeTruthy();
+    expect(screen.queryByText("setup.firstAgent.gatewayContinue")).toBeNull();
+  });
+});

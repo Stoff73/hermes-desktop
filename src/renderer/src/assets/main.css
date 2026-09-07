@@ -17786,3 +17786,18 @@ body:has(.shell-vibrant),
     0 24px 60px -16px rgba(0, 0, 0, 0.6),
     0 8px 24px -12px rgba(0, 0, 0, 0.45);
 }
+
+.gateway-onboard-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--border-bright);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 13px;
+}
