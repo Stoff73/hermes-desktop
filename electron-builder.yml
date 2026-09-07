@@ -68,6 +68,8 @@ rpm:
   afterInstall: build/linux-after-install.sh
 npmRebuild: false
 publish:
+  # The update feed the installed app checks. It must be this fork —
+  # pointing at upstream would hand every user the other repo's builds.
   provider: github
-  owner: fathah
+  owner: Stoff73
   repo: hermes-desktop
