@@ -51,15 +51,15 @@ This plan is executed by Opus 5 inline (or by a fresh subagent per task).
 
 | # | Task | Status | Commit |
 | --- | --- | --- | --- |
-| 1 | Shared general preset | not started | |
-| 2 | Apply preset (main + IPC + preload) | not started | |
-| 3 | FirstAgent screen | not started | |
-| 4 | App flow wiring | not started | |
-| 5 | Gateway highlight + continue | not started | |
-| 6 | Chat auto-send | not started | |
-| 7 | Layout onboarding handoff | not started | |
-| 8 | Preset in the Agents create modal | not started | |
-| 9 | Docs, lat check, manual run-through | not started | |
+| 1 | Shared general preset | done | 90a5bbe |
+| 2 | Apply preset (main + IPC + preload) | done | 5cad639 |
+| 3 | FirstAgent screen | done | 033ba84 |
+| 4 | App flow wiring | done | cfc77fb (with task 7) |
+| 5 | Gateway highlight + continue | done | 19e5868 |
+| 6 | Chat auto-send | done | 39809dd |
+| 7 | Layout onboarding handoff | done | cfc77fb |
+| 8 | Preset in the Agents create modal | done | 6c2027d |
+| 9 | Docs, lat check, manual run-through | docs + lat check done (eaf2279); fresh-install walkthrough pending | eaf2279 |
 
 ---
 
@@ -1623,4 +1623,12 @@ EOF
 
 | Task | Date | Notes |
 | --- | --- | --- |
-| | | |
+| 1 | 2026-09-07 | `hermes` resolves on PATH *and* `./hermes` works, so the persona names the bare command with the repo-dir fallback. |
+| 2 | 2026-09-07 | `HermesAPI` in `src/preload/index.d.ts` also needed the new method — the plan listed only `src/preload/index.ts`. |
+| 3 | 2026-09-07 | Plan bug: `gateway.platforms` is already a plain string, so `gateway.platforms.<id>` keys would have collided. Channel labels live under `setup.firstAgent.channels.*` instead. |
+| 4 | 2026-09-07 | Committed with task 7 — App passes Layout's new prop, so the two do not typecheck apart. |
+| 5 | 2026-09-07 | Implementation written before the test (out of TDD order); the assertions still fail without it. |
+| 6 | 2026-09-07 | As planned: ref-guarded effect, no new Chat harness. |
+| 7 | 2026-09-07 | The test caught a real bug: panes lazy-mount on first visit, so the initial view had to be seeded into `visitedViews` or onboarding's Gateway never mounted. Also needed a jsdom `ResizeObserver` stub. |
+| 8 | 2026-09-07 | The existing clone test encoded the old default; updated to pick "Blank", which is what it was actually testing. |
+| 9 | 2026-09-07 | `lat check` passes. Suite: 2012 passed, 10 failed in `gateway-restart`, `terminal-launcher`, `AgentMarkdown` — all pre-existing and flaky (they fail on `main` too, with counts that vary per run). Fresh-install walkthrough not yet run: it needs a real install and an admin password. |
