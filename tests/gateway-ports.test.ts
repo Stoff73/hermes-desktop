@@ -11,10 +11,20 @@ vi.mock("../src/main/installer", () => ({
   HERMES_HOME: "/tmp/hermes-test-home",
 }));
 
-vi.mock("../src/main/utils", () => ({
-  normalizeProfileName: (p?: string) =>
-    p === undefined || p === "" || p === "default" ? undefined : p,
-}));
+vi.mock("../src/main/utils", () => {
+  const PROFILE_NAME_RE = /^[a-z0-9_][a-z0-9_-]*$/;
+  return {
+    isValidNamedProfileName: (p: unknown) =>
+      typeof p === "string" && PROFILE_NAME_RE.test(p),
+    // Mirror the real helper: an invalid name throws, which is exactly what
+    // a stray non-profile directory used to trigger.
+    normalizeProfileName: (p?: string) => {
+      if (p === undefined || p === "" || p === "default") return undefined;
+      if (!PROFILE_NAME_RE.test(p)) throw new Error("invalid profile name");
+      return p;
+    },
+  };
+});
 
 const setConfigValueSpy = vi.fn(
   (key: string, value: string, profile?: string) => {
@@ -23,8 +33,14 @@ const setConfigValueSpy = vi.fn(
 );
 
 vi.mock("../src/main/config", () => ({
-  getConfigValue: (_key: string, profile?: string) =>
-    configuredPorts.get(profile ?? "default") ?? null,
+  // The real getConfigValue resolves the profile home first, which throws
+  // on an invalid profile name — keep that behaviour so the mock can't hide
+  // a stray non-profile directory reaching it.
+  getConfigValue: (_key: string, profile?: string) => {
+    if (profile !== undefined && !/^[a-z0-9_][a-z0-9_-]*$/.test(profile))
+      throw new Error("invalid profile name");
+    return configuredPorts.get(profile ?? "default") ?? null;
+  },
   setConfigValue: (key: string, value: string, profile?: string) =>
     setConfigValueSpy(key, value, profile),
 }));
@@ -54,6 +70,13 @@ describe("getProfilePort", () => {
     expect(getProfilePort(undefined)).toBe(DEFAULT_API_SERVER_PORT);
     expect(getProfilePort("default")).toBe(DEFAULT_API_SERVER_PORT);
     expect(setConfigValueSpy).not.toHaveBeenCalled();
+  });
+
+  // @lat: [[main-process#Per-profile api_server ports#Ignores non-profile entries]]
+  it("ignores non-profile entries such as the CLI's .deleted tombstone dir", () => {
+    dirEntries.push(".deleted", ".DS_Store", "coder");
+    expect(() => getProfilePort("coder")).not.toThrow();
+    expect(getProfilePort("coder")).toBe(DEFAULT_API_SERVER_PORT + 1);
   });
 
   it("allocates the first free port for a named profile with no configured port", () => {

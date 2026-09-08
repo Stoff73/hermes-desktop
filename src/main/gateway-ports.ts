@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, statSync } from "fs";
 import { join } from "path";
 import { HERMES_HOME } from "./installer";
-import { normalizeProfileName } from "./utils";
+import { isValidNamedProfileName, normalizeProfileName } from "./utils";
 import { getConfigValue, setConfigValue } from "./config";
 
 function envPort(name: string, fallback: number): number {
@@ -32,7 +32,11 @@ function listNamedProfiles(): string[] {
   const dir = join(HERMES_HOME, "profiles");
   if (!existsSync(dir)) return [];
   try {
+    // Only real profile dirs: the hermes CLI leaves a `.deleted` tombstone
+    // dir (and Finder a `.DS_Store`) in here, and an invalid name throws
+    // inside getConfigValue — which took the whole gateway start down.
     return readdirSync(dir).filter((name) => {
+      if (!isValidNamedProfileName(name)) return false;
       try {
         return statSync(join(dir, name)).isDirectory();
       } catch {

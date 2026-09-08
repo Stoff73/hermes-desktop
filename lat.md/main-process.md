@@ -111,6 +111,18 @@ Every user-facing string for `API_SERVER_KEY` says *local gateway key* and state
 
 The previous wording ("Set API Server Key", placeholder `sk-… or any secret`) pointed users at their LLM provider instead. The strings live in [[src/shared/i18n/locales/en/diagnose.ts]] and [[src/shared/i18n/locales/en/settings.ts]]; the `EMPTY_API_SERVER_KEY` issue text in [[src/main/config-health.ts]] now points at Settings → Connection rather than Providers, which holds provider keys. Non-English locales still carry the older wording until translated.
 
+## Per-profile api_server ports
+
+Each named profile's gateway binds its own api_server port so profiles can run side by side; [[src/main/gateway-ports.ts#getProfilePort]] allocates that port and persists it in the profile's config.yaml.
+
+The default profile is pinned to 8642. A named profile with no configured port gets the first free port above it, and a profile cloned from default (so carrying 8642) is reassigned. "Free" is computed from every sibling profile's configured port, which means reading each sibling's config.yaml via `getConfigValue`.
+
+### Ignores non-profile entries
+
+Only directories under `profiles/` that pass [[src/main/utils.ts#isValidNamedProfileName]] count as siblings, so the hermes CLI's `.deleted` tombstone dir and Finder's `.DS_Store` are skipped.
+
+Before this filter, reading config for such a name threw inside `getConfigValue`; the throw propagated through [[src/main/hermes.ts#buildGatewayEnv]] and [[src/main/hermes.ts#startGatewayDetailed]] and rejected the `set-active-profile` IPC. The Agents page then spun on "Starting…" indefinitely, because the renderer only schedules its gateway-ready poll after that call resolves. Covered by the `.deleted` case in `tests/gateway-ports.test.ts`.
+
 ## SSH credential resolution
 
 The credential depends on which transport is active. Over the **dashboard** the **session token** is used; over the **gateway `/v1`** path the remote **`API_SERVER_KEY`** is used.
