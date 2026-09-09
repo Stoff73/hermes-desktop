@@ -1,5 +1,5 @@
 import type { ChatToolEvent } from "../../../../shared/chat-stream";
-import { isLossyChunkCopy } from "./lossyText";
+import { hasDroppedWordSeam, isLossyChunkCopy } from "./lossyText";
 import type { ActiveTurn, ChatBubbleMessage, ChatMessage } from "./types";
 
 export interface DashboardStreamEvent<T = unknown> {
@@ -471,6 +471,12 @@ export function mergeStreamedWithFinal(
   // genuinely different texts) on the concatenate path: unrelated sentences
   // only embed as scattered fragments, never as contiguous chunk runs.
   if (isLossyChunkCopy(normStreamed, normFinal)) {
+    return finalContent;
+  }
+  // A fragment under those floors ("in2**?" for a one-line greeting) is
+  // still chunk-dropped noise when its runs were glued together mid-word —
+  // a seam no genuine lead-in ("On it.") ever has.
+  if (normStreamed.length < 12 && hasDroppedWordSeam(normStreamed, normFinal)) {
     return finalContent;
   }
 

@@ -22,6 +22,7 @@ import {
   getSecretsProvider,
   providerListSafe,
   invalidateProviderListCache,
+  resolvedSecretMap,
 } from "./secrets";
 import { canonicalProviderBaseUrl } from "./provider-registry";
 import {
@@ -1341,8 +1342,18 @@ export function ensureLocalApiServerKey(profile?: string): {
   key: string;
   created: boolean;
 } {
-  const existing = getApiServerKey(profile);
-  if (isUsableApiServerKey(existing)) return { key: existing, created: false };
+  // Judge only the profile's OWN sources (its .env / vault / config.yaml),
+  // never the default profile's key that getApiServerKey() falls back to.
+  // That fallback let a new agent chat fine while the config-health banner —
+  // which checks these same sources — insisted no key was set.
+  const existing = [
+    resolvedSecretMap(profile).API_SERVER_KEY,
+    getConfigValue("API_SERVER_KEY", profile),
+    getConfigValue("api_server.token", profile),
+  ]
+    .map((v) => (v ?? "").trim())
+    .find((v) => isUsableApiServerKey(v));
+  if (existing) return { key: existing, created: false };
   const key = randomBytes(24).toString("hex");
   setEnvValue("API_SERVER_KEY", key, profile);
   return { key, created: true };

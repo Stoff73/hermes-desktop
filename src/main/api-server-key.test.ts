@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeAll, afterEach, afterAll } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+  readFileSync,
+} from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
@@ -46,6 +52,29 @@ describe("ensureLocalApiServerKey", () => {
     const { key, created } = mod.ensureLocalApiServerKey();
     expect(created).toBe(false);
     expect(key).toBe("already-a-good-long-key-here");
+  });
+
+  // The health check that drives the "Local gateway key not set" banner only
+  // looks at the profile's own sources. Provisioning used to accept the
+  // default profile's key as "usable" and write nothing, so every new agent
+  // chatted fine (the gateway inherited the default key) while the banner
+  // insisted no key was set.
+  it("mints a per-profile key instead of inheriting the default profile's", () => {
+    writeFileSync(envFile, "API_SERVER_KEY=default-profile-key-long-enough\n");
+    const profileDir = join(home, "profiles", "poe2");
+    mkdirSync(profileDir, { recursive: true });
+    writeFileSync(join(profileDir, ".env"), "# per-profile secrets\n");
+    mod.invalidateSecretsCache();
+    try {
+      const { key, created } = mod.ensureLocalApiServerKey("poe2");
+      expect(created).toBe(true);
+      expect(key).not.toBe("default-profile-key-long-enough");
+      expect(readFileSync(join(profileDir, ".env"), "utf-8")).toContain(
+        `API_SERVER_KEY=${key}`,
+      );
+    } finally {
+      rmSync(profileDir, { recursive: true, force: true });
+    }
   });
 
   it("replaces a placeholder key", () => {

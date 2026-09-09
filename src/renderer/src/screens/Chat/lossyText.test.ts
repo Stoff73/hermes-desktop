@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { isLossyChunkCopy } from "./lossyText";
+import { hasDroppedWordSeam, isLossyChunkCopy } from "./lossyText";
 
 /**
  * The chunk-copy matcher backs both stream reconciliations (assistant bubble
@@ -58,5 +58,22 @@ describe("isLossyChunkCopy", () => {
     expect(
       isLossyChunkCopy("Hello there my friend!", "Hello there my friend, hi!"),
     ).toBe(true);
+  });
+});
+
+describe("hasDroppedWordSeam", () => {
+  const full =
+    "Hello! 👋 What would you like help with in **Path of Exile 2**?";
+
+  it("finds the mid-word seam left by dropped deltas", () => {
+    expect(hasDroppedWordSeam("in2**?", full)).toBe(true);
+  });
+
+  it("does not flag a genuine short lead-in", () => {
+    expect(hasDroppedWordSeam("On it.", "Onwards — it is done.")).toBe(false);
+  });
+
+  it("does not flag text that is not assembled from the final at all", () => {
+    expect(hasDroppedWordSeam("zq9x", full)).toBe(false);
   });
 });

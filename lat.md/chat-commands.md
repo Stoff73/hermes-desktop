@@ -61,6 +61,8 @@ Streamed reasoning and tool calls are folded into compact, collapsible transcrip
 
 [[src/renderer/src/screens/Chat/HistoryRow.tsx#ReasoningRow]] renders the `Thought` / `Thinking…` row and [[src/renderer/src/screens/Chat/HistoryRow.tsx#ToolActivityGroup]] folds a contiguous run of tool calls/results into one row titled by [[src/renderer/src/screens/Chat/HistoryRow.tsx#toolActivityGroupTitle]]. Each row is collapsed by default and borderless (Codex-style): dim at rest, it brightens and reveals an expand chevron beside the title on hover/focus, and clicking toggles the body open. While the turn is still streaming the leading icon is a thinking-orbs [[loading-indicators|OrbLoader]] (`solving` for reasoning, `working` for tools); once finished it shows the brain/tool glyph.
 
+A fragment below those floors can still be chunk-dropped noise: the content stream once carried only `in2**?` of a one-line greeting (the rest was tagged reasoning upstream), and concatenation stacked it above the clean answer. [[src/renderer/src/screens/Chat/lossyText.ts#hasDroppedWordSeam]] catches that case by its seam — two runs of the final glued together with word characters on both sides, which genuine text never has — so a short fragment with such a seam also loses to the final while a real lead-in like "On it." still stacks.
+
 ### Reasoning reconciliation
 
 The live reasoning stream is best-effort — dropped delta chunks leave the streamed row garbled — while state.db holds the canonical text. The DB refresh must collapse the two, or the user sees both stacked in one Thought block.

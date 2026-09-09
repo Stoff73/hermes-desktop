@@ -72,6 +72,18 @@ describe("mergeStreamedWithFinal", () => {
     );
   });
 
+  // Seen live: the content stream carried only "in2**?" of the answer (the
+  // rest was tagged reasoning upstream). Too short for the copy detector's
+  // floors, so it was concatenated above the clean final.
+  it("replaces a tiny chunk-dropped tail fragment with the final text", () => {
+    expect(
+      mergeStreamedWithFinal(
+        "in2**?",
+        "Hello! 👋 What would you like help with in **Path of Exile 2**?",
+      ),
+    ).toBe("Hello! 👋 What would you like help with in **Path of Exile 2**?");
+  });
+
   it("still concatenates a short lead-in even if it is a subsequence", () => {
     // Guard: a tiny streamed fragment is a subsequence of almost anything;
     // treat it as the pre-tool-call text it usually is.

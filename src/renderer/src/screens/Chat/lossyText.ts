@@ -60,3 +60,51 @@ export function isLossyChunkCopy(
   }
   return true;
 }
+
+/**
+ * A chunk-dropped fragment too short for `isLossyChunkCopy`'s floors can still
+ * be recognised by its seams: where two runs of `full` were glued together in
+ * `partial` with word characters on both sides ("in" + "2**?" → "in2**?"),
+ * something between them was dropped. Genuine text never splices mid-word, so
+ * a single such seam is decisive where length and coverage are not.
+ *
+ * Same greedy in-order run walk as `isLossyChunkCopy`; `minRun` is 2 because
+ * the dropped deltas are single tokens and the surviving runs are tiny.
+ */
+export function hasDroppedWordSeam(
+  partial: string,
+  full: string,
+  minRun = 2,
+): boolean {
+  if (!partial || !full || partial.length >= full.length) return false;
+  const word = /\w/;
+  let i = 0;
+  let j = 0;
+  let prevEnd = -1;
+  while (i < partial.length) {
+    const remaining = partial.length - i;
+    const probeLen = Math.min(minRun, remaining);
+    const at = full.indexOf(partial.slice(i, i + probeLen), j);
+    if (at < 0) return false;
+    if (probeLen < minRun && remaining > probeLen) return false;
+    if (
+      prevEnd >= 0 &&
+      at > prevEnd &&
+      word.test(partial[i - 1]) &&
+      word.test(partial[i])
+    ) {
+      return true;
+    }
+    let len = probeLen;
+    while (
+      i + len < partial.length &&
+      at + len < full.length &&
+      partial[i + len] === full[at + len]
+    ) {
+      len++;
+    }
+    i += len;
+    j = prevEnd = at + len;
+  }
+  return false;
+}
