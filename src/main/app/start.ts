@@ -1,4 +1,5 @@
 import { app, BrowserWindow, nativeTheme, session, shell } from "electron";
+import { ensureCreateAgentSkillEverywhere } from "../create-agent-skill";
 import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../../resources/icon.png?asset";
@@ -50,6 +51,10 @@ export function startMainProcess(): void {
   setupUpdater({ getMainWindow: () => mainWindow });
 
   app.whenReady().then(() => {
+    // Ship the create-agent skill to every profile before any chat can ask
+    // for a new agent — gateways launchd started never pass through
+    // startGateway, so this is the only guaranteed install point.
+    ensureCreateAgentSkillEverywhere();
     electronApp.setAppUserModelId("com.hermes.desktop");
 
     app.on("browser-window-created", (_, window) => {
