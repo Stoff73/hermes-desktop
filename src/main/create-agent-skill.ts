@@ -53,10 +53,14 @@ docs, run \`--help\`, or explore the CLI first.
    hermes profile create <id> --clone-from <your-profile-id-or-default>
    \`\`\`
 
-   Then record the display name the desktop shows:
+   Then record the display name the desktop shows, and empty the memory
+   files the clone copied from the source agent — a new agent must not
+   inherit another agent's notes about repos, backups or workflows:
 
    \`\`\`bash
    printf '{"name": "<Display Name>"}\\n' > ~/.hermes/profiles/<id>/profile-meta.json
+   : > ~/.hermes/profiles/<id>/memories/MEMORY.md
+   : > ~/.hermes/profiles/<id>/memories/USER.md
    \`\`\`
 3. **Write the persona** to \`~/.hermes/profiles/<id>/SOUL.md\` (overwrite the
    cloned one) using the template below, filled from the request.

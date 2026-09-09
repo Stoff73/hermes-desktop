@@ -323,8 +323,32 @@ export function createProfile(
     );
   }
   ensureCreateAgentSkill(id);
+  if (cloneFrom) resetClonedMemories(id);
 
   return { success: true, id };
+}
+
+/**
+ * A clone copies the source agent's `memories/MEMORY.md` and `USER.md` too —
+ * upstream treats them as part of the agent's identity. For a NEW agent that
+ * is a leak: the default agent's notes about repos, backups and coding
+ * workflow turned a mail-and-calendar specialist into something that
+ * "verifies and creates code in the Hermes repository". A new agent starts
+ * with empty memories; config, keys and skills are what the clone is for.
+ */
+function resetClonedMemories(id: string): void {
+  const dir = join(profileHome(id), "memories");
+  try {
+    mkdirSync(dir, { recursive: true });
+    for (const file of ["MEMORY.md", "USER.md"]) {
+      writeFileSync(join(dir, file), "", "utf-8");
+    }
+  } catch (err) {
+    console.warn(
+      `Created profile "${id}" but could not reset its memories:`,
+      err,
+    );
+  }
 }
 
 export function deleteProfile(name: string): {

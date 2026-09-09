@@ -56,6 +56,12 @@ Asking any agent to "create an agent that …" follows a bounded recipe the desk
 
 The chat agent used to reach for the upstream `hermes-agent` hub skill, which documents the whole CLI and leaves the model to improvise — one session spent ten minutes fetching docs, running `--help`, creating cron jobs, installing a launchd service and symlinking credentials for a request that needed one profile and a persona. [[src/main/create-agent-skill.ts#CREATE_AGENT_SKILL]] is the desktop's own `create-agent` skill: four tool calls (create the profile cloned from the current one so it inherits providers and keys, record the display name in `profile-meta.json`, write `SOUL.md` from the same persona shape the New Agent preset uses, report with every assumption stated), at most one clarifying question and only after creation, and an explicit list of side effects it must not perform unasked — services, schedules (a cadence in the request is confirmed, not acted on), skill installs, credential or config edits, test queries, doc reading, debugging.
 
+### A new agent starts with empty memories
+
+Cloning copies the source agent's `memories/MEMORY.md` and `USER.md` as well as config, keys and skills; both creation paths empty them so the new agent inherits nothing but its setup.
+
+Upstream's `--clone` treats memory files as part of the agent's identity, which is right for duplicating an agent and wrong for creating a specialist: the default agent's notes about repositories, backups and coding workflow made a mail-and-calendar agent behave as if it should verify and create code in the Hermes repository. The skill's step 2 truncates both files after the clone, and the desktop's [[src/main/profiles.ts#createProfile]] does the same for a clone-based New Agent. Covered by the "starts a cloned agent with empty memories" case in `tests/profiles.test.ts`.
+
 ### Installed into every profile
 
 [[src/main/create-agent-skill.ts#ensureCreateAgentSkill]] writes the skill into `<profile home>/skills/hermes-one/create-agent/SKILL.md`, rewriting only when the content changed.

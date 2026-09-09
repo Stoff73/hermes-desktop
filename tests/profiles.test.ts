@@ -201,6 +201,27 @@ describe("listProfiles", () => {
     expect(created?.name).toBe("卢姐");
   });
 
+  it("starts a cloned agent with empty memories instead of the source agent's", () => {
+    // The CLI's --clone copies memories/MEMORY.md and USER.md along with
+    // config, keys and skills. Simulate that: the new profile arrives with
+    // the source's notes in it.
+    execFileSyncMock.mockImplementation(() => {
+      const dir = join(TEST_HOME, "profiles", "concierge", "memories");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        join(dir, "MEMORY.md"),
+        "Myrtle works in the fynla repo.\n",
+      );
+      writeFileSync(join(dir, "USER.md"), "Chris versions memory in GitHub.\n");
+      return Buffer.from("");
+    });
+    const result = createProfile("Concierge", "default");
+    expect(result).toEqual({ success: true, id: "concierge" });
+    const dir = join(TEST_HOME, "profiles", "concierge", "memories");
+    expect(readFileSync(join(dir, "MEMORY.md"), "utf-8")).toBe("");
+    expect(readFileSync(join(dir, "USER.md"), "utf-8")).toBe("");
+  });
+
   it("keeps a successful CLI-created profile when metadata cannot be written", async () => {
     execFileSyncMock.mockImplementation(() => {
       mkdirSync(join(PROFILES_DIR, "agent", "profile-meta.json"), {
