@@ -73,12 +73,14 @@ function Harness({
   fallbackOnUnavailable = false,
   initialConnectionMode = "local",
   onDashboardUnavailable,
+  setIsLoading = vi.fn(),
   setUsage = vi.fn() as SetUsageMock,
 }: {
   api: HarnessApi;
   fallbackOnUnavailable?: boolean;
   initialConnectionMode?: "local" | "remote" | "ssh";
   onDashboardUnavailable?: (reason: string) => void;
+  setIsLoading?: (value: boolean) => void;
   setUsage?: SetUsageMock;
 }): null {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -107,7 +109,7 @@ function Harness({
     profile: undefined,
     provider,
     setHermesSessionId: vi.fn(),
-    setIsLoading: vi.fn(),
+    setIsLoading,
     setMessages,
     setToolProgress: vi.fn(),
     setUsage,
@@ -764,7 +766,8 @@ describe("useDashboardChatTransport multi-question clarify", () => {
   // qids still open, and the next question is surfaced for the next reply.
   it("answers one question per reply and surfaces the next until none remain", async () => {
     const api: HarnessApi = {};
-    render(<Harness api={api} />);
+    const setIsLoading = vi.fn();
+    render(<Harness api={api} setIsLoading={setIsLoading} />);
     const clarifyCalls: Array<Record<string, unknown>> = [];
     let remaining = ["q1"];
     dashboardMock.request.mockImplementation(
@@ -800,6 +803,13 @@ describe("useDashboardChatTransport multi-question clarify", () => {
     expect(api.messages?.some((m) => m.id === "clarify-r1-q0")).toBe(true);
     expect(api.messages?.some((m) => m.id === "clarify-r1-q1")).toBe(false);
 
+    // Chat's handleSend marks each reply as a running turn before sending.
+    // Seen live: that state outlived the first answer, so the second answer
+    // was queued behind a completion that never comes and the batch stalled.
+    if (api.activeTurnRef) {
+      api.activeTurnRef.current = { ...activeRecoveryTurn };
+    }
+    setIsLoading.mockClear();
     await act(async () => {
       await api.send?.("Gmail");
     });
@@ -811,6 +821,8 @@ describe("useDashboardChatTransport multi-question clarify", () => {
     await waitFor(() =>
       expect(api.messages?.some((m) => m.id === "clarify-r1-q1")).toBe(true),
     );
+    expect(api.activeTurnRef?.current).toBeNull();
+    expect(setIsLoading).toHaveBeenLastCalledWith(false);
 
     await act(async () => {
       await api.send?.("Only report");

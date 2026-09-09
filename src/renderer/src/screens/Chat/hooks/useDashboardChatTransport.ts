@@ -1503,6 +1503,13 @@ export function useDashboardChatTransport({
               messagesRef.current = next;
               return next;
             });
+            // Back to "awaiting an answer", exactly as clarify.request left
+            // it. handleSend marked this reply as a running turn; without
+            // clearing that, the next answer is shunted into the busy queue
+            // (no completion ever arrives mid-clarify) and the batch stalls.
+            activeTurnRef.current = null;
+            setToolProgress(null);
+            setIsLoading(false);
           } else {
             pendingClarifyBatchRef.current = null;
           }
