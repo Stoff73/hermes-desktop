@@ -6,9 +6,14 @@ import {
   normalizeMessageText,
 } from "../chatMessages";
 import {
+  appendClarifyQuestion,
   applyDashboardStreamEvent,
   type DashboardStreamEvent,
 } from "../dashboardEventAdapter";
+import {
+  parseClarifyQuestions,
+  type ClarifyQuestion,
+} from "../../../../../shared/clarify";
 import { DashboardGatewayClient } from "../dashboardGatewayClient";
 import { executeSlash, type SlashExecOutcome } from "../slashExec";
 import type { AgentCommandsCatalogResponse } from "../slash/types";
@@ -927,6 +932,13 @@ export function useDashboardChatTransport({
   const recreateRuntimeSessionRef = useRef(false);
   const lastRuntimeSessionWasCreatedRef = useRef(false);
   const pendingClarifyRequestIdRef = useRef<string | null>(null);
+  // Multi-question clarify in flight: answered one question per composer
+  // reply (`question_id` on clarify.respond), the next question surfacing as
+  // the gateway reports what remains.
+  const pendingClarifyBatchRef = useRef<{
+    questions: ClarifyQuestion[];
+    index: number;
+  } | null>(null);
   const pendingRecoveredContinuationRef = useRef<
     DesktopSessionContinuationItem[]
   >([]);
@@ -958,6 +970,7 @@ export function useDashboardChatTransport({
     recreateRuntimeSessionRef.current = false;
     lastRuntimeSessionWasCreatedRef.current = false;
     pendingClarifyRequestIdRef.current = null;
+    pendingClarifyBatchRef.current = null;
     lastSyncedCwdRef.current = null;
   }, [hermesSessionId]);
 
@@ -977,6 +990,7 @@ export function useDashboardChatTransport({
     recreateRuntimeSessionRef.current = false;
     lastRuntimeSessionWasCreatedRef.current = false;
     pendingClarifyRequestIdRef.current = null;
+    pendingClarifyBatchRef.current = null;
     pendingRecoveredContinuationRef.current = [];
     lastSyncedCwdRef.current = null;
   }, [connectionMode, profile]);
@@ -1102,12 +1116,15 @@ export function useDashboardChatTransport({
       if (event.type === "clarify.request") {
         const payload =
           event.payload && typeof event.payload === "object"
-            ? (event.payload as { request_id?: unknown })
+            ? (event.payload as { request_id?: unknown; questions?: unknown })
             : {};
         const requestId =
           typeof payload.request_id === "string" ? payload.request_id : "";
         if (requestId) {
           pendingClarifyRequestIdRef.current = requestId;
+          const questions = parseClarifyQuestions(payload);
+          pendingClarifyBatchRef.current =
+            questions.length > 0 ? { questions, index: 0 } : null;
           activeTurnRef.current = null;
           setToolProgress(null);
           setIsLoading(false);
@@ -1449,12 +1466,46 @@ export function useDashboardChatTransport({
       const pendingClarifyRequestId = pendingClarifyRequestIdRef.current;
       if (pendingClarifyRequestId) {
         pendingClarifyRequestIdRef.current = null;
+        const batch = pendingClarifyBatchRef.current;
         try {
           const client = await ensureClient();
-          await client.request("clarify.respond", {
-            request_id: pendingClarifyRequestId,
-            answer: text,
-          });
+          const current = batch?.questions[batch.index];
+          const result = await client.request<{ remaining?: unknown }>(
+            "clarify.respond",
+            current
+              ? {
+                  request_id: pendingClarifyRequestId,
+                  question_id: current.qid,
+                  answer: text,
+                }
+              : { request_id: pendingClarifyRequestId, answer: text },
+          );
+          const remaining = Array.isArray(result?.remaining)
+            ? result.remaining.map(String)
+            : [];
+          const nextIndex = batch
+            ? batch.questions.findIndex((q) => remaining.includes(q.qid))
+            : -1;
+          if (batch && nextIndex >= 0) {
+            pendingClarifyRequestIdRef.current = pendingClarifyRequestId;
+            pendingClarifyBatchRef.current = {
+              questions: batch.questions,
+              index: nextIndex,
+            };
+            setMessages((prev) => {
+              const next = appendClarifyQuestion(
+                prev,
+                pendingClarifyRequestId,
+                batch.questions[nextIndex],
+                nextIndex,
+                batch.questions.length,
+              );
+              messagesRef.current = next;
+              return next;
+            });
+          } else {
+            pendingClarifyBatchRef.current = null;
+          }
           return true;
         } catch (err) {
           pendingClarifyRequestIdRef.current = pendingClarifyRequestId;

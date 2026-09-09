@@ -56,6 +56,10 @@ import { HIDDEN_SUBPROCESS_OPTIONS } from "./process-options";
 import { type Attachment, escapeXmlAttr } from "../shared/attachments";
 import { type SessionModelOverride } from "../shared/model-override";
 import {
+  formatClarifyQuestion,
+  parseClarifyQuestions,
+} from "../shared/clarify";
+import {
   OPENAI_COMPAT_PROVIDERS,
   customProviderEnvKey,
 } from "../shared/url-key-map";
@@ -2092,12 +2096,22 @@ async function sendMessageViaTuiGateway(
       const payload = event.payload as
         | { question?: string; prompt?: string; choices?: unknown }
         | undefined;
+      // ponytail: a multi-question batch is shown as one free-text card here;
+      // the dashboard transport (the path local mode actually uses) answers
+      // per question. Give this fallback a per-question card if it matters.
+      const batch = parseClarifyQuestions(payload);
       cb.onClarify?.({
         requestId,
-        question: String(payload?.question ?? payload?.prompt ?? ""),
-        choices: Array.isArray(payload?.choices)
-          ? payload.choices.map((c) => String(c))
-          : [],
+        question:
+          batch.length > 0
+            ? batch
+                .map((q, i) => formatClarifyQuestion(q, i, batch.length))
+                .join("\n\n")
+            : String(payload?.question ?? payload?.prompt ?? ""),
+        choices:
+          batch.length === 0 && Array.isArray(payload?.choices)
+            ? payload.choices.map((c) => String(c))
+            : [],
       });
       return;
     }

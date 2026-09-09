@@ -1,5 +1,10 @@
 import type { ChatToolEvent } from "../../../../shared/chat-stream";
 import { hasDroppedWordSeam, isLossyChunkCopy } from "./lossyText";
+import {
+  formatClarifyQuestion,
+  parseClarifyQuestions,
+  type ClarifyQuestion,
+} from "../../../../shared/clarify";
 import type { ActiveTurn, ChatBubbleMessage, ChatMessage } from "./types";
 
 export interface DashboardStreamEvent<T = unknown> {
@@ -135,6 +140,18 @@ function appendClarifyRequest(
 ): ChatMessage[] {
   if (!isRecord(payload)) return [...messages];
   const requestId = textFromPayload(payload, "request_id", "id");
+  // Multi-question batch: show the first question now; the transport appends
+  // each next one as the user answers (see appendClarifyQuestion).
+  const batch = parseClarifyQuestions(payload);
+  if (batch.length > 0) {
+    return appendClarifyQuestion(
+      messages,
+      requestId,
+      batch[0],
+      0,
+      batch.length,
+    );
+  }
   const question = textFromPayload(payload, "question", "message", "text");
   if (!question.trim()) return [...messages];
 
@@ -165,6 +182,26 @@ function appendClarifyRequest(
       ...messages.slice(existingIndex + 1),
     ];
   }
+  return [...messages, bubble];
+}
+
+/** Append one question of a multi-question clarify as a local-only bubble. */
+export function appendClarifyQuestion(
+  messages: ReadonlyArray<ChatMessage>,
+  requestId: string,
+  question: ClarifyQuestion,
+  index: number,
+  total: number,
+): ChatMessage[] {
+  const id = `clarify-${requestId}-${question.qid}`;
+  if (messages.some((message) => message.id === id)) return [...messages];
+  const bubble: ChatBubbleMessage = {
+    id,
+    role: "agent",
+    content: formatClarifyQuestion(question, index, total),
+    pending: false,
+    localOnly: true,
+  };
   return [...messages, bubble];
 }
 

@@ -733,3 +733,97 @@ describe("useDashboardChatTransport context gauge estimate (no usage payload)", 
     expect(setUsage).not.toHaveBeenCalled();
   });
 });
+
+describe("useDashboardChatTransport multi-question clarify", () => {
+  beforeEach(() => {
+    dashboardMock.close.mockClear();
+    dashboardMock.connect.mockClear();
+    dashboardMock.instances.length = 0;
+    dashboardMock.onEvent = null;
+    dashboardMock.request.mockReset();
+    Object.defineProperty(window, "hermesAPI", {
+      configurable: true,
+      value: {
+        freshDashboardWsUrl: vi.fn(async () => "ws://fresh-dashboard"),
+        recordSessionContinuation: vi.fn(async () => true),
+        recordSessionLocalError: vi.fn(async () => true),
+        startDashboard: vi.fn(async () => ({
+          connection: { wsUrl: "ws://127.0.0.1:12345" },
+          running: true,
+        })),
+      },
+    });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // A plain-text reply to a batch is a cancel-all on the tool side, so each
+  // composer reply must carry the question's id; the gateway answers with the
+  // qids still open, and the next question is surfaced for the next reply.
+  it("answers one question per reply and surfaces the next until none remain", async () => {
+    const api: HarnessApi = {};
+    render(<Harness api={api} />);
+    const clarifyCalls: Array<Record<string, unknown>> = [];
+    let remaining = ["q1"];
+    dashboardMock.request.mockImplementation(
+      async (method: string, params?: Record<string, unknown>) => {
+        if (method === "session.create") {
+          return { session_id: "live-1", stored_session_id: "stored-1" };
+        }
+        if (method === "clarify.respond") {
+          clarifyCalls.push(params ?? {});
+          const out = { status: "ok", remaining };
+          remaining = [];
+          return out;
+        }
+        return {};
+      },
+    );
+    await act(async () => {
+      await api.send?.("create an agent");
+    });
+
+    await act(async () => {
+      dashboardMock.onEvent?.({
+        type: "clarify.request",
+        payload: {
+          request_id: "r1",
+          questions: [
+            { qid: "q0", question: "Which source?", choices: ["Gmail"] },
+            { qid: "q1", question: "Auto-apply?", choices: [] },
+          ],
+        },
+      });
+    });
+    expect(api.messages?.some((m) => m.id === "clarify-r1-q0")).toBe(true);
+    expect(api.messages?.some((m) => m.id === "clarify-r1-q1")).toBe(false);
+
+    await act(async () => {
+      await api.send?.("Gmail");
+    });
+    expect(clarifyCalls[0]).toEqual({
+      request_id: "r1",
+      question_id: "q0",
+      answer: "Gmail",
+    });
+    await waitFor(() =>
+      expect(api.messages?.some((m) => m.id === "clarify-r1-q1")).toBe(true),
+    );
+
+    await act(async () => {
+      await api.send?.("Only report");
+    });
+    expect(clarifyCalls[1]).toEqual({
+      request_id: "r1",
+      question_id: "q1",
+      answer: "Only report",
+    });
+    // Batch complete: the next send is a normal prompt, not a clarify answer.
+    await act(async () => {
+      await api.send?.("thanks");
+    });
+    expect(clarifyCalls).toHaveLength(2);
+  });
+});

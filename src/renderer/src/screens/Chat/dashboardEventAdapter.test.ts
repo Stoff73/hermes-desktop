@@ -221,3 +221,47 @@ describe("applyDashboardStreamEvent — message.complete text reconciliation", (
     expect((bubble as { content: string }).content).toBe("Remote answer");
   });
 });
+
+describe("clarify.request", () => {
+  it("renders a single question with its numbered choices", () => {
+    const next = applyDashboardStreamEvent(
+      { messages: [], reasoningSegmentClosed: false },
+      {
+        type: "clarify.request",
+        payload: { request_id: "r1", question: "Which?", choices: ["A", "B"] },
+      },
+    );
+    expect(next.messages).toHaveLength(1);
+    expect((next.messages[0] as { content: string }).content).toBe(
+      "Which?\n\n1. A\n2. B",
+    );
+  });
+
+  // The gateway batches several questions into one request (`questions`).
+  // Before this the adapter looked only for `question`, found nothing, and
+  // silently dropped the request — the agent waited on a prompt nobody saw.
+  it("shows the first question of a multi-question batch", () => {
+    const next = applyDashboardStreamEvent(
+      { messages: [], reasoningSegmentClosed: false },
+      {
+        type: "clarify.request",
+        payload: {
+          request_id: "r1",
+          questions: [
+            {
+              qid: "q0",
+              question: "Which source?",
+              choices: ["Gmail", "Apple"],
+            },
+            { qid: "q1", question: "Auto-apply?", choices: [] },
+          ],
+        },
+      },
+    );
+    expect(next.messages).toHaveLength(1);
+    expect(next.messages[0].id).toBe("clarify-r1-q0");
+    expect((next.messages[0] as { content: string }).content).toBe(
+      "**Question 1 of 2**\n\nWhich source?\n\n1. Gmail\n2. Apple",
+    );
+  });
+});
