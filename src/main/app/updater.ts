@@ -36,6 +36,24 @@ function setAutoUpgradeEnabled(enabled: boolean): void {
   writeFileSync(file, `${JSON.stringify({ autoUpgrade: enabled }, null, 2)}\n`);
 }
 
+/**
+ * The version a manual check should offer, or null when the app is current.
+ * `checkForUpdates()` resolves with `updateInfo` for the LATEST release even
+ * when that is the installed version — only `isUpdateAvailable` says whether
+ * it is newer. Reporting the bare version made the About card offer "Update
+ * v0.8.4" on 0.8.4, and the click then failed with electron-updater's
+ * "Please check update first" because there was nothing to download.
+ */
+export function availableUpdateVersion(
+  result: {
+    isUpdateAvailable?: boolean;
+    updateInfo?: { version?: string };
+  } | null,
+): string | null {
+  if (!result?.isUpdateAvailable) return null;
+  return result.updateInfo?.version || null;
+}
+
 export function setupUpdater({ getMainWindow }: UpdaterDeps): void {
   ipcMain.handle("get-app-version", () => app.getVersion());
   ipcMain.handle("get-auto-upgrade-enabled", () => getAutoUpgradeEnabled());
@@ -87,7 +105,7 @@ export function setupUpdater({ getMainWindow }: UpdaterDeps): void {
   ipcMain.handle("check-for-updates", async () => {
     try {
       const result = await autoUpdater.checkForUpdates();
-      return result?.updateInfo?.version || null;
+      return availableUpdateVersion(result);
     } catch {
       return null;
     }
