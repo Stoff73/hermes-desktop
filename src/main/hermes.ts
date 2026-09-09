@@ -60,6 +60,10 @@ import {
   parseClarifyQuestions,
 } from "../shared/clarify";
 import {
+  ensureCreateAgentSkill,
+  ensureCreateAgentSkillEverywhere,
+} from "./create-agent-skill";
+import {
   OPENAI_COMPAT_PROVIDERS,
   customProviderEnvKey,
 } from "../shared/url-key-map";
@@ -2976,6 +2980,8 @@ function ensureInitialized(): void {
   // shared health poller.
   startHealthPolling();
   warmTuiGatewayClient();
+  // Gateways the desktop did not start (launchd, CLI) still get the skill.
+  ensureCreateAgentSkillEverywhere();
 }
 
 function startHealthPolling(): void {
@@ -3181,6 +3187,8 @@ export function startGatewayDetailed(profile?: string): GatewayStartResult {
 
   const key = profileKey(profile);
   const gatewayEnv = buildGatewayEnv(profile);
+  // The agent behind this gateway may be asked to create other agents.
+  ensureCreateAgentSkill(profile);
 
   // Route stderr to a log file so startup errors are visible for debugging.
   // Per-profile log dir so a named profile's failures (e.g. a duplicate bot

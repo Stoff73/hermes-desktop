@@ -49,3 +49,15 @@ A clean health check shows no key field; a `MODEL_KEY_MISSING` issue shows the f
 ### Working folder
 
 The stored `.` default is shown by name with no reset offered; choosing a folder writes `terminal.cwd` for that profile; reset writes `.` back; a cancelled dialog writes nothing.
+
+## Creating an agent from chat
+
+Asking any agent to "create an agent that …" follows a bounded recipe the desktop ships as a skill: create the profile, write its persona from the request, report, stop.
+
+The chat agent used to reach for the upstream `hermes-agent` hub skill, which documents the whole CLI and leaves the model to improvise — one session spent ten minutes fetching docs, running `--help`, creating cron jobs, installing a launchd service and symlinking credentials for a request that needed one profile and a persona. [[src/main/create-agent-skill.ts#CREATE_AGENT_SKILL]] is the desktop's own `create-agent` skill: four tool calls (create the profile cloned from the current one so it inherits providers and keys, record the display name in `profile-meta.json`, write `SOUL.md` from the same persona shape the New Agent preset uses, report with every assumption stated), at most one clarifying question and only after creation, and an explicit list of side effects it must not perform unasked — services, schedules (a cadence in the request is confirmed, not acted on), skill installs, credential or config edits, test queries, doc reading, debugging.
+
+### Installed into every profile
+
+[[src/main/create-agent-skill.ts#ensureCreateAgentSkill]] writes the skill into `<profile home>/skills/hermes-one/create-agent/SKILL.md`, rewriting only when the content changed.
+
+The default profile's copy lives under the Hermes home. The install runs when the desktop starts a gateway, when it creates a profile, and once at initialisation for every existing profile ([[src/main/create-agent-skill.ts#ensureCreateAgentSkillEverywhere]]), so gateways the desktop did not start still see it. It is best-effort: a failure to write the skill never blocks a gateway start or a profile creation.

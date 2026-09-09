@@ -17,6 +17,7 @@ import {
   profileHome,
   PROFILE_NAME_ERROR,
 } from "./utils";
+import { ensureCreateAgentSkill } from "./create-agent-skill";
 import { HIDDEN_SUBPROCESS_OPTIONS } from "./process-options";
 import { readProfileMeta, defaultColorForName } from "./profile-meta";
 
@@ -321,6 +322,7 @@ export function createProfile(
       err,
     );
   }
+  ensureCreateAgentSkill(id);
 
   return { success: true, id };
 }
