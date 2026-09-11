@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "lat hook claude UserPromptSubmit"
+            "command": "command -v lat >/dev/null && lat hook claude UserPromptSubmit || npx -y lat.md hook claude UserPromptSubmit"
           }
         ]
       }
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "lat hook claude Stop"
+            "command": "command -v lat >/dev/null && lat hook claude Stop || npx -y lat.md hook claude Stop"
           }
         ]
       }
