@@ -51,6 +51,11 @@ export default {
   apiKeyLabel: "{{provider}} API Key",
   noApiKeyRequired:
     "{{provider}} does not require an API key. Hermes will use your local CLI/OAuth configuration.",
+  oauthHint:
+    "{{provider}} signs in through your browser instead of an API key.",
+  oauthSignIn: "Sign in",
+  oauthNotSignedIn: "Not signed in yet",
+  oauthSignedIn: "Signed in",
   localNoKeyNeeded: "No API key needed",
   localLlm: "Local LLM",
   modelBaseUrlPlaceholder: "http://localhost:1234/v1",

@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowRight, ExternalLink, Check } from "../../assets/icons";
-import { PROVIDERS, LOCAL_PRESETS, DASHSCOPE_ENDPOINTS } from "../../constants";
+import {
+  PROVIDERS,
+  LOCAL_PRESETS,
+  DASHSCOPE_ENDPOINTS,
+  OAUTH_PROVIDERS,
+} from "../../constants";
 import { useI18n } from "../../components/useI18n";
 import VerifyWarningBanner from "../../components/VerifyWarningBanner";
 import BrandLogo from "../../components/common/BrandLogo";
 import SetupModelField from "./SetupModelField";
+import OAuthLoginModal from "../../components/OAuthLoginModal";
 import { expectedEnvKeyForUrl } from "../../../../shared/url-key-map";
 
 interface SetupProps {
@@ -37,6 +43,27 @@ function Setup({
   const configProvider = isLocal ? "custom" : provider.configProvider;
   const configBaseUrl =
     isLocal || isDashScope ? baseUrl.trim() : provider.baseUrl;
+
+  // OAuth-only tiles (Codex) have no key to type: the CLI's browser sign-in
+  // is the credential. Setup used to wave these through, so a fresh user
+  // landed in chat with "run hermes auth" errors and no sign-in in sight.
+  const oauthProvider = OAUTH_PROVIDERS.find((o) => o.id === configProvider);
+  const [oauthSignedIn, setOauthSignedIn] = useState(false);
+  const [oauthOpen, setOauthOpen] = useState(false);
+  useEffect(() => {
+    if (!oauthProvider || oauthOpen) return;
+    let live = true;
+    setOauthSignedIn(false);
+    // Re-runs when the modal closes; auth.json is the source of truth, not
+    // the modal's own success flag.
+    void window.hermesAPI
+      .getOAuthProviderStatuses()
+      .then((s) => live && setOauthSignedIn(!!s[oauthProvider.id]))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [oauthProvider, oauthOpen]);
 
   function applyLocalPreset(presetBaseUrl: string): void {
     setBaseUrl(presetBaseUrl);
@@ -321,6 +348,36 @@ function Setup({
                 }}
               />
             </>
+          ) : oauthProvider ? (
+            <>
+              <div className="setup-field-hint">
+                {t("setup.oauthHint", { provider: oauthProvider.name })}
+              </div>
+              <div className="setup-oauth-row">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setOauthOpen(true)}
+                >
+                  {t("setup.oauthSignIn")}
+                </button>
+                <span className="setup-field-hint">
+                  {oauthSignedIn
+                    ? t("setup.oauthSignedIn")
+                    : t("setup.oauthNotSignedIn")}
+                </span>
+              </div>
+
+              <SetupModelField
+                provider={configProvider}
+                baseUrl={configBaseUrl}
+                value={modelName}
+                onChange={(m) => {
+                  setModelName(m);
+                  setError("");
+                }}
+              />
+            </>
           ) : (
             <>
               <div className="setup-field-hint">
@@ -349,6 +406,7 @@ function Setup({
               saving ||
               !modelName.trim() ||
               (provider.needsKey && !apiKey.trim()) ||
+              (!!oauthProvider && !oauthSignedIn) ||
               ((isLocal || isDashScope) && !baseUrl.trim())
             }
             style={{ marginTop: isLocal ? 20 : 0 }}
@@ -357,6 +415,13 @@ function Setup({
             {!saving && <ArrowRight size={16} />}
           </button>
         </div>
+        {oauthOpen && oauthProvider && (
+          <OAuthLoginModal
+            provider={oauthProvider.id}
+            providerLabel={oauthProvider.name}
+            onClose={() => setOauthOpen(false)}
+          />
+        )}
       </div>
     </div>
   );

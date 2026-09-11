@@ -2194,6 +2194,13 @@ body:has(.shell-vibrant),
   color: var(--text-primary);
 }
 
+.setup-oauth-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
 .setup-link {
   display: inline-flex;
   align-items: center;

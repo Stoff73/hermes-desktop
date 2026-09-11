@@ -26,6 +26,14 @@ DashScope users choose between the mainland China and international endpoints du
 
 The table's other entries are there because their `/v1/chat/completions` is trusted; this one is there because `setModelConfig` fills an empty `base_url` from it, and every caller that selects Codex passes empty: the Setup tile has `baseUrl: ""`, and `effectiveOverrideBaseUrl` in [[src/renderer/src/screens/Chat/hooks/useModelConfig.ts]] returns `""` for every provider but `custom` and `ollama-cloud`. With no canonical entry the *previous* provider's URL survived, so picking Codex after Anthropic wrote `provider: openai-codex` pointing at `api.anthropic.com`. The entry says nothing about transport.
 
+## OAuth-only tiles sign in during Setup
+
+A first-run tile with no key (Codex) shows a Sign in button that runs the CLI's OAuth flow, and Continue stays disabled until auth.json holds credentials for that provider.
+
+[[src/renderer/src/screens/Setup/Setup.tsx]] looks the tile's `configProvider` up in `OAUTH_PROVIDERS`; a hit swaps the "no API key required" hint for a hint plus a Sign in button that opens [[src/renderer/src/components/OAuthLoginModal.tsx]], the same modal the Providers tab uses. Signed-in state comes from `getOAuthProviderStatuses` (i.e. [[src/main/config.ts#hasOAuthCredentials]]), queried when the tile is picked and again when the modal closes, so a login done earlier in a terminal counts and a modal that reported success without writing tokens does not.
+
+Before this, the Codex tile said "Uses your Codex OAuth login" and let Setup finish with nothing configured. The readiness check fails open for OAuth-only providers (`OAUTH_PROVIDERS` in [[src/main/validation.ts]]), so no banner appeared either; the user's first chat failed with the agent's "run hermes auth" error, and the only Sign in button lived at the bottom of the Providers tab under a different name ("ChatGPT (Codex Plan)"). [[src/renderer/src/screens/Setup/Setup.test.tsx]] covers the gate, the unlock after the modal closes, and that key-based tiles are untouched.
+
 ## OpenAI-compatible endpoints route through Local
 
 Endpoints the agent does not natively support (Groq, DeepSeek, Together, Fireworks, Cerebras, AtlasCloud, Mistral, AIML, …) are offered as `LOCAL_PRESETS` chips under the `local` card, not as top-level cards.
