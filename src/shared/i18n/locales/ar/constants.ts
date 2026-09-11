@@ -11,7 +11,7 @@ export default {
   anthropicDesc: "نماذج Claude",
   openaiName: "OpenAI",
   openaiDesc: "نماذج GPT و Codex",
-  openaiCodexName: "Codex CLI",
+  openaiCodexName: "اشتراك ChatGPT",
   openaiCodexDesc: "يستخدم تسجيل الدخول عبر Codex OAuth",
   openaiCodexTag: "",
   ollamaCloudName: "Ollama Cloud",

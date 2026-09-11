@@ -9,7 +9,7 @@ export default {
   anthropicDesc: "מודלים של Claude",
   openaiName: "OpenAI",
   openaiDesc: "מודלים של GPT ו-Codex",
-  openaiCodexName: "Codex CLI",
+  openaiCodexName: "מנוי ChatGPT",
   openaiCodexDesc: "משתמש בהתחברות ה-OAuth שלכם ל-Codex",
   openaiCodexTag: "",
   ollamaCloudName: "Ollama Cloud",

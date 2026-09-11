@@ -11,7 +11,7 @@ export default {
   anthropicDesc: "Modele Claude",
   openaiName: "OpenAI",
   openaiDesc: "Modele GPT i Codex",
-  openaiCodexName: "Codex CLI",
+  openaiCodexName: "Subskrypcja ChatGPT",
   openaiCodexDesc: "Używa Twojego logowania OAuth Codex",
   openaiCodexTag: "",
   googleName: "Google AI Studio",

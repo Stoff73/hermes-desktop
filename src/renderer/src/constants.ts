@@ -296,7 +296,7 @@ export interface OAuthProviderDef {
 export const OAUTH_PROVIDERS: OAuthProviderDef[] = [
   {
     id: "openai-codex",
-    name: "ChatGPT (Codex Plan)",
+    name: "ChatGPT subscription",
     desc: "providers.oauth.codexDesc",
   },
   {

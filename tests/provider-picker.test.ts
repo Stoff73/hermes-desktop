@@ -16,7 +16,7 @@ describe("authenticated OAuth provider picker entries", () => {
       {
         key: "brand:openai-codex",
         brand: "openai-codex",
-        label: "ChatGPT (Codex Plan)",
+        label: "ChatGPT subscription",
         provider: "openai-codex",
         baseUrl: "",
         keyEnv: "",

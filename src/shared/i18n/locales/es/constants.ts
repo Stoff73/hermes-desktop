@@ -11,7 +11,7 @@ export default {
   anthropicDesc: "Modelos Claude",
   openaiName: "OpenAI",
   openaiDesc: "Modelos GPT y Codex",
-  openaiCodexName: "OpenAI Codex CLI",
+  openaiCodexName: "Suscripción a ChatGPT",
   openaiCodexDesc: "Usa tu inicio de sesión OAuth de Codex",
   openaiCodexTag: "Sin API key",
   ollamaCloudName: "Ollama Cloud",
